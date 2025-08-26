@@ -1,69 +1,6 @@
 export default function Page() {
   return (
     <div className="min-h-screen bg-[#c7e6fa] flex flex-col">
-      <nav className="w-full flex justify-center py-4 bg-transparent">
-        <ul className="flex gap-6 text-base font-medium">
-          <li>
-            <a href="/" className="hover:underline focus:outline-none">
-              Home
-            </a>
-          </li>
-          <li>
-            <a href="/about" className="hover:underline focus:outline-none">
-              About us
-            </a>
-          </li>
-          <li>
-            <a href="/products" className="hover:underline focus:outline-none">
-              Products
-            </a>
-          </li>
-          <li>
-            <a href="/ordering" className="hover:underline focus:outline-none">
-              Ordering
-            </a>
-          </li>
-          <li>
-            <a href="/contact" className="hover:underline focus:outline-none">
-              Contact us
-            </a>
-          </li>
-          <li>
-            <a href="/reviews" className="hover:underline focus:outline-none">
-              Reviews
-            </a>
-          </li>
-          <li>
-            <a href="/login" className="hover:underline focus:outline-none">
-              Login
-            </a>
-          </li>
-          <li>
-            <a
-              href="/order-history"
-              className="hover:underline focus:outline-none"
-            >
-              Order History
-            </a>
-          </li>
-          <li>
-            <a
-              href="/order-status"
-              className="hover:underline focus:outline-none"
-            >
-              Order status
-            </a>
-          </li>
-          <li>
-            <a
-              href="/order-now"
-              className="bg-blue-400 text-white px-4 py-2 rounded-full font-semibold hover:bg-blue-500 transition-colors"
-            >
-              Order now!
-            </a>
-          </li>
-        </ul>
-      </nav>
       <main className="flex-1 flex flex-col items-center justify-center">
         <div className="w-full max-w-3xl bg-white rounded-2xl shadow-xl p-6 mt-8 mb-8">
           <div className="flex flex-col md:flex-row items-center gap-6">
