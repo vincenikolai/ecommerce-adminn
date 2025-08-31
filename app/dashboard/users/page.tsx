@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClientComponentClient, Session } from '@supabase/auth-helpers-nextjs';
 import { Button } from '@/components/ui/button';
 import toast from 'react-hot-toast';
 
@@ -13,9 +13,27 @@ interface User {
   ban_duration: string | null;
 }
 
+const ADMIN_EMAIL = "eastlachemicals@gmail.com";
+
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
+  const [session, setSession] = useState<Session | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const supabase = createClientComponentClient();
+
+  useEffect(() => {
+    const getSession = async () => {
+      const { data: { session }, error } = await supabase.auth.getSession();
+      if (error) {
+        toast.error("Error fetching session: " + error.message);
+      } else {
+        setSession(session);
+      }
+      setIsLoading(false);
+    };
+
+    getSession();
+  }, [supabase.auth]);
 
   const fetchUsers = async () => {
     try {
@@ -32,8 +50,10 @@ export default function UsersPage() {
   };
 
   useEffect(() => {
-    fetchUsers();
-  }, []);
+    if (session && session.user?.email === ADMIN_EMAIL) {
+      fetchUsers();
+    }
+  }, [session]);
 
   const handleBlockUnblock = async (userId: string, ban_duration: string) => {
     try {
@@ -56,6 +76,14 @@ export default function UsersPage() {
       toast.error("Error: " + error.message);
     }
   };
+
+  if (isLoading) {
+    return <div className="p-6">Loading user data...</div>;
+  }
+
+  if (!session || session.user?.email !== ADMIN_EMAIL) {
+    return <div className="p-6 text-red-500">Access Denied: You do not have administrator privileges to view this page.</div>;
+  }
 
   return (
     <div className="p-6">

@@ -1,8 +1,19 @@
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { adminSupabase } from '@/lib/supabase/admin'
 
+const ADMIN_EMAIL = "eastlachemicals@gmail.com";
+
 export async function POST(req: Request) {
   try {
+    const authClient = createRouteHandlerClient({ cookies });
+    const { data: { session }, error: sessionError } = await authClient.auth.getSession();
+
+    if (sessionError || !session || session.user?.email !== ADMIN_EMAIL) {
+      return new NextResponse("User not allowed", { status: 403 });
+    }
+
     const { userId, ban_duration } = await req.json();
 
     if (!userId) {
