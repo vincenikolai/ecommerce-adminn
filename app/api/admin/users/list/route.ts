@@ -7,6 +7,10 @@ import { createClient } from '@supabase/supabase-js'
 const ADMIN_EMAIL = "eastlachemicals@gmail.com";
 
 export async function GET(req: Request) {
+  // CANARY TEST: Very early log and response to check if API route is hit
+  console.log("CANARY TEST: API route /api/admin/users/list hit!");
+  // return NextResponse.json({ message: "Canary test successful!" });
+
   let supabaseUrl = '';
   let supabaseServiceRoleKey = '';
 
