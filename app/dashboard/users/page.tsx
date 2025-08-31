@@ -5,18 +5,19 @@ import { createClientComponentClient, Session } from '@supabase/auth-helpers-nex
 import { Button } from '@/components/ui/button';
 import toast from 'react-hot-toast';
 
-interface User {
+interface UserProfile {
   id: string;
   email: string;
   first_name: string | null;
   last_name: string | null;
   ban_duration: string | null;
+  is_admin: boolean; // Add is_admin property
 }
 
 const ADMIN_EMAIL = "eastlachemicals@gmail.com";
 
 export default function UsersPage() {
-  const [users, setUsers] = useState<User[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const supabase = createClientComponentClient();
@@ -36,16 +37,20 @@ export default function UsersPage() {
   }, [supabase.auth]);
 
   const fetchUsers = async () => {
+    setIsLoading(true);
     try {
-      const response = await fetch('/api/admin/users/list');
+      const response = await fetch("/api/admin/users/list");
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to fetch users');
+        throw new Error(errorData.error || "Failed to fetch users");
       }
-      const data = await response.json();
+      const data: UserProfile[] = await response.json();
       setUsers(data);
     } catch (error: unknown) {
+      console.error("Error in fetchUsers:", error);
       toast.error("Error: " + (error instanceof Error ? error.message : "An unknown error occurred"));
+    } finally {
+      setIsLoading(false);
     }
   };
 

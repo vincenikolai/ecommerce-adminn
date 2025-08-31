@@ -45,6 +45,8 @@ export async function GET(req: Request) {
       return new NextResponse("User not allowed", { status: 403 });
     }
 
+    console.log("Fetching users from Supabase...");
+
     // Fetch all users from auth.users (admin privilege required)
     const { data: authUsers, error: authError } = await localAdminSupabase.auth.admin.listUsers();
 
@@ -65,7 +67,7 @@ export async function GET(req: Request) {
     // Fetch profiles for these users
     const { data: profiles, error: profileError } = await localAdminSupabase
       .from('profiles')
-      .select('id, first_name, last_name, ban_duration')
+      .select('id, first_name, last_name, ban_duration, is_admin')
       .in('id', userIds);
 
     if (profileError) {
@@ -84,7 +86,7 @@ export async function GET(req: Request) {
         first_name: profile?.first_name || null,
         last_name: profile?.last_name || null,
         ban_duration: profile?.ban_duration || null,
-        // Add any other relevant authUser properties you want
+        is_admin: profile?.is_admin || false,
       };
     });
 
