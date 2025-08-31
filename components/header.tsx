@@ -7,12 +7,13 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClientComponentClient } from "@supabase/auth-helpers-nextjs";
 import { SignOutButton } from "@/components/ui/sign-out-button";
+import { Session } from "@supabase/supabase-js";
 
 const ADMIN_EMAIL = "eastlachemicals@gmail.com";
 
 export function Header() {
   const router = useRouter();
-  const [session, setSession] = useState(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const supabase = createClientComponentClient();
