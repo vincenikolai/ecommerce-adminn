@@ -1,4 +1,3 @@
-import { ClerkProvider } from "@/components/clerk-provider";
 import { Header } from "@/components/header";
 import { Inter } from "next/font/google";
 import "./globals.css";
@@ -22,17 +21,17 @@ export default function RootLayout({
 }) {
   return (
     <SupabaseProvider>
-      <ClerkProvider>
-        <html lang="en">
-          <body className={inter.className}>
-            <ToastProvider />
-            <ModalProvider />
+      <html lang="en">
+        <body className={inter.className + " min-h-screen flex flex-col"}>
+          <ToastProvider />
+          <ModalProvider />
 
-            <Header />
+          <Header />
+          <div className="flex-1">
             {children}
-          </body>
-        </html>
-      </ClerkProvider>
+          </div>
+        </body>
+      </html>
     </SupabaseProvider>
   );
 }

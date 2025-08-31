@@ -1,5 +1,5 @@
-import { SignUp } from '@clerk/nextjs'
 import { ChartLine, Clock, ShieldCheck, Sparkles } from 'lucide-react'
+import { ModernSignUpPage } from "@/components/ModernSignUpPage";
 
 export default function SignUpPage() {
   return (
@@ -45,7 +45,7 @@ export default function SignUpPage() {
         </ul>
       </div>
       <div className="flex flex-1 items-center justify-center p-6 md:p-10 lg:justify-start">
-        <SignUp />
+        <ModernSignUpPage />
       </div>
     </div>
   )

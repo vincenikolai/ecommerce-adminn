@@ -1,34 +1,27 @@
-import { authMiddleware, redirectToSignIn } from "@clerk/nextjs";
-import { NextResponse } from "next/server";
+import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
+import { NextResponse } from 'next/server'
 
-export default authMiddleware({
-  publicRoutes: ["/", "/sign-in(.*)", "/sign-up(.*)", "/api/webhooks/clerk", "/about", "/contact", "/waitlist"],
-  async afterAuth(auth, req) {
-    // Handle users who aren't authenticated for a public route
-    if (!auth.userId && auth.isPublicRoute) {
-      return NextResponse.next();
-    }
+import type { NextRequest } from 'next/server'
 
-    // Redirect logged in users to /dashboard if they try to access a public route
-    if (auth.userId && auth.isPublicRoute) {
-      let path = "/dashboard";
-      return NextResponse.redirect(new URL(path, req.url));
-    }
+export async function middleware(req: NextRequest) {
+  const res = NextResponse.next()
+  const supabase = createMiddlewareClient({ req, res })
 
-    // If the user is not logged in and trying to access a private route, redirect them to sign-in
-    if (!auth.userId && !auth.isPublicRoute) {
-      return redirectToSignIn({ returnBackUrl: req.url });
-    }
+  const {data: { session }} = await supabase.auth.getSession()
 
-    // Allow user to proceed if they are logged in and accessing a private route
-    if (auth.userId && !auth.isPublicRoute) {
-      return NextResponse.next();
-    }
+  if (!session && req.nextUrl.pathname.startsWith('/dashboard')) {
+    // Redirect unauthenticated users trying to access dashboard routes
+    return NextResponse.redirect(new URL('/sign-in', req.url))
+  }
 
-    return NextResponse.next();
-  },
-});
+  if (session && (req.nextUrl.pathname.startsWith('/sign-in') || req.nextUrl.pathname.startsWith('/sign-up'))) {
+    // Redirect authenticated users trying to access sign-in/sign-up pages
+    return NextResponse.redirect(new URL('/dashboard', req.url))
+  }
+
+  return res
+}
 
 export const config = {
-  matcher: ['/((?!.+\\\.[\\w]+$|_next).*)', '/(api|trpc)(.*)'],
-};
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)(.+)']
+}
