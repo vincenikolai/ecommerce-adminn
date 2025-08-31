@@ -2,14 +2,32 @@ import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { adminSupabase } from '@/lib/supabase/admin'
+import { createClient } from '@supabase/supabase-js'
 
 const ADMIN_EMAIL = "eastlachemicals@gmail.com";
 
 export async function GET(req: Request) {
+  let supabaseUrl = '';
+  let supabaseServiceRoleKey = '';
+
   try {
+    supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
+
     // Log environment variables (masked for security) to verify they are loaded
-    console.log("NEXT_PUBLIC_SUPABASE_URL loaded:", !!process.env.NEXT_PUBLIC_SUPABASE_URL);
-    console.log("SUPABASE_SERVICE_ROLE_KEY loaded:", !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+    console.log("NEXT_PUBLIC_SUPABASE_URL loaded:", !!supabaseUrl);
+    console.log("SUPABASE_SERVICE_ROLE_KEY loaded:", !!supabaseServiceRoleKey);
+
+    if (!supabaseUrl || !supabaseServiceRoleKey) {
+      throw new Error('Missing environment variables for Supabase admin client in API route');
+    }
+
+    // Re-initialize adminSupabase here to ensure env vars are fresh
+    const localAdminSupabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
+      auth: {
+        persistSession: false,
+      },
+    });
 
     const authClient = createRouteHandlerClient({ cookies });
     const { data: { session }, error: sessionError } = await authClient.auth.getSession();
@@ -24,7 +42,7 @@ export async function GET(req: Request) {
     }
 
     // Fetch all users from auth.users (admin privilege required)
-    const { data: authUsers, error: authError } = await adminSupabase.auth.admin.listUsers();
+    const { data: authUsers, error: authError } = await localAdminSupabase.auth.admin.listUsers();
 
     if (authError) {
       console.error("Error fetching auth users:", authError);
@@ -41,7 +59,7 @@ export async function GET(req: Request) {
     console.log("User IDs for profile fetch:", userIds);
 
     // Fetch profiles for these users
-    const { data: profiles, error: profileError } = await adminSupabase
+    const { data: profiles, error: profileError } = await localAdminSupabase
       .from('profiles')
       .select('id, first_name, last_name, ban_duration')
       .in('id', userIds);
