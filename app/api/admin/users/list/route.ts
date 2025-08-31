@@ -34,7 +34,7 @@ export async function GET(req: Request) {
     // Fetch profiles for these users
     const { data: profiles, error: profileError } = await adminSupabase
       .from('profiles')
-      .select('id, first_name, last_name')
+      .select('id, first_name, last_name, ban_duration')
       .in('id', userIds);
 
     if (profileError) {
@@ -52,7 +52,7 @@ export async function GET(req: Request) {
         email: authUser.email,
         first_name: profile?.first_name || null,
         last_name: profile?.last_name || null,
-        ban_duration: authUser.ban_duration,
+        ban_duration: profile?.ban_duration || null,
         // Add any other relevant authUser properties you want
       };
     });

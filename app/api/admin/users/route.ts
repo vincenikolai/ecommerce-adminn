@@ -20,9 +20,10 @@ export async function POST(req: Request) {
       return new NextResponse("User ID is required", { status: 400 });
     }
 
-    const { data, error } = await adminSupabase.auth.admin.updateUserById(userId, {
-      ban_duration: ban_duration,
-    });
+    const { data, error } = await adminSupabase
+      .from('profiles')
+      .update({ ban_duration: ban_duration })
+      .eq('id', userId);
 
     if (error) {
       console.error("Error updating user ban status:", error);
