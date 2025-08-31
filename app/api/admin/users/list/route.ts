@@ -7,10 +7,19 @@ const ADMIN_EMAIL = "eastlachemicals@gmail.com";
 
 export async function GET(req: Request) {
   try {
+    // Log environment variables (masked for security) to verify they are loaded
+    console.log("NEXT_PUBLIC_SUPABASE_URL loaded:", !!process.env.NEXT_PUBLIC_SUPABASE_URL);
+    console.log("SUPABASE_SERVICE_ROLE_KEY loaded:", !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+
     const authClient = createRouteHandlerClient({ cookies });
     const { data: { session }, error: sessionError } = await authClient.auth.getSession();
 
-    if (sessionError || !session || session.user?.email !== ADMIN_EMAIL) {
+    if (sessionError) {
+      console.error("Session error:", sessionError);
+      return new NextResponse(sessionError.message, { status: 401 });
+    }
+
+    if (!session || session.user?.email !== ADMIN_EMAIL) {
       return new NextResponse("User not allowed", { status: 403 });
     }
 
@@ -58,8 +67,8 @@ export async function GET(req: Request) {
     });
 
     return NextResponse.json(combinedUsers);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Unexpected error in admin users list route:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return new NextResponse(error.message || "Internal Server Error", { status: 500 });
   }
 }
