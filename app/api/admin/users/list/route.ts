@@ -89,8 +89,8 @@ export async function GET(req: Request) {
     });
 
     return NextResponse.json(combinedUsers);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Unexpected error in admin users list route:", error);
-    return new NextResponse(error.message || "Internal Server Error", { status: 500 });
+    return new NextResponse(error instanceof Error ? error.message : "Internal Server Error", { status: 500 });
   }
 }

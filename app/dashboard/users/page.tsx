@@ -44,8 +44,8 @@ export default function UsersPage() {
       }
       const data = await response.json();
       setUsers(data);
-    } catch (error: any) {
-      toast.error("Error: " + error.message);
+    } catch (error: unknown) {
+      toast.error("Error: " + (error instanceof Error ? error.message : "An unknown error occurred"));
     }
   };
 
@@ -72,8 +72,8 @@ export default function UsersPage() {
 
       toast.success(`User ${ban_duration === 'none' ? 'unblocked' : 'blocked'} successfully!`);
       fetchUsers(); // Refresh the user list
-    } catch (error: any) {
-      toast.error("Error: " + error.message);
+    } catch (error: unknown) {
+      toast.error("Error: " + (error instanceof Error ? error.message : "An unknown error occurred"));
     }
   };
 
