@@ -14,19 +14,16 @@ export async function middleware(req: NextRequest) {
   let userDetails: User | null = session?.user || null;
 
   if (session && session.user && userDetails) {
-    // Directly query the auth.users table for the banned_until status
-    const { data: userData, error: fetchUserError } = await adminSupabase
-      .from('auth.users') // Corrected: Specify 'auth' schema for users table
-      .select('banned_until')
-      .eq('id', session.user.id)
-      .single();
+    // Fetch the latest user details from Supabase admin to ensure banned_until is current
+    const { data: { user }, error: adminUserError } = await adminSupabase.auth.admin.getUserById(session.user.id);
 
-    if (fetchUserError) {
-      console.error("Middleware: Error fetching banned_until from auth.users:", fetchUserError);
-    } else if (userData) {
-      // Only update the banned_until property
-      userDetails.banned_until = userData.banned_until;
-      console.log("Middleware: Successfully fetched banned_until from auth.users:", userData.banned_until); // Added log
+    console.log("Middleware: Raw user object from getUserById:", user); // Added detailed log
+
+    if (adminUserError) {
+      console.error("Middleware: Error fetching admin user details from adminSupabase:", adminUserError);
+      // Continue with potentially stale session user data if admin fetch fails
+    } else if (user) {
+      userDetails = user;
     }
   }
 
