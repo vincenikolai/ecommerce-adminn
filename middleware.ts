@@ -11,23 +11,29 @@ export async function middleware(req: NextRequest) {
 
   const {data: { session }} = await supabase.auth.getSession()
 
-  let userDetails: User | null = session?.user || null;
+  interface UserWithBanStatus extends User {
+    ban_duration?: string | null;
+  }
+
+  let userDetails: UserWithBanStatus | null = session?.user || null;
 
   if (session && session.user && userDetails) {
-    // Fetch the latest user details from Supabase admin to ensure banned_until is current
-    const { data: { user }, error: adminUserError } = await adminSupabase.auth.admin.getUserById(session.user.id);
+    // Fetch the user's profile from the profiles table to get ban_duration
+    const { data: profileData, error: profileError } = await adminSupabase
+      .from('profiles')
+      .select('ban_duration')
+      .eq('id', session.user.id)
+      .single();
 
-    console.log("Middleware: Raw user object from getUserById:", user); // Added detailed log
-
-    if (adminUserError) {
-      console.error("Middleware: Error fetching admin user details from adminSupabase:", adminUserError);
-      // Continue with potentially stale session user data if admin fetch fails
-    } else if (user) {
-      userDetails = user;
+    if (profileError) {
+      console.error("Middleware: Error fetching profile for ban status:", profileError);
+    } else if (profileData) {
+      userDetails.ban_duration = profileData.ban_duration;
+      console.log("Middleware: Fetched ban_duration from profiles:", profileData.ban_duration);
     }
   }
 
-  const isBanned = userDetails?.banned_until && new Date(userDetails.banned_until) > new Date();
+  const isBanned = userDetails?.ban_duration === 'blocked'; // Check against ban_duration
   const isSignInPage = req.nextUrl.pathname.startsWith('/sign-in');
   const isDashboardRoute = req.nextUrl.pathname.startsWith('/dashboard');
 
