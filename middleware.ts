@@ -9,7 +9,11 @@ export async function middleware(req: NextRequest) {
 
   const {data: { session }} = await supabase.auth.getSession()
 
+  console.log("Middleware Session:", session);
+  console.log("Middleware User:", session?.user);
+  console.log("Middleware User Banned Until:", session?.user?.banned_until);
   const isBanned = session?.user?.banned_until && new Date(session.user.banned_until) > new Date();
+  console.log("Is Banned calculated:", isBanned);
   const isSignInPage = req.nextUrl.pathname.startsWith('/sign-in');
   const isDashboardRoute = req.nextUrl.pathname.startsWith('/dashboard');
 
