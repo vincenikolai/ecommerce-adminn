@@ -7,7 +7,7 @@ const ADMIN_EMAIL = "eastlachemicals@gmail.com";
 
 export async function POST(req: Request) {
   try {
-    const authClient = createRouteHandlerClient({ cookies });
+    const authClient = createRouteHandlerClient({ cookies: () => cookies() });
     const { data: { session }, error: sessionError } = await authClient.auth.getSession();
 
     if (sessionError || !session || session.user?.email !== ADMIN_EMAIL) {

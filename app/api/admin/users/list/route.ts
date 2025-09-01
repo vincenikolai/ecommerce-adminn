@@ -33,7 +33,7 @@ export async function GET(req: Request) {
       },
     });
 
-    const authClient = createRouteHandlerClient({ cookies });
+    const authClient = createRouteHandlerClient({ cookies: () => cookies() });
     const { data: { session }, error: sessionError } = await authClient.auth.getSession();
 
     if (sessionError) {
