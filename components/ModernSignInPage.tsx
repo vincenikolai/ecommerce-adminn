@@ -35,7 +35,7 @@ export function ModernSignInPage() {
       console.error("Error signing in:", error.message);
       alert("Error signing in: " + error.message);
     } else {
-      router.replace('/dashboard');
+      router.replace('/');
       router.refresh();
     }
   };

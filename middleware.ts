@@ -36,7 +36,7 @@ export async function middleware(req: NextRequest) {
 
   if (session && (isSignInPage || req.nextUrl.pathname.startsWith('/sign-up'))) {
     // Redirect authenticated users trying to access sign-in/sign-up pages
-    return NextResponse.redirect(new URL('/dashboard', req.url))
+    return NextResponse.redirect(new URL('/', req.url))
   }
 
   return res
