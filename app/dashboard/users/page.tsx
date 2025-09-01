@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { createClientComponentClient, Session } from '@supabase/auth-helpers-nextjs';
 import { Button } from '@/components/ui/button';
 import toast from 'react-hot-toast';
+import { CreateUserModal } from '@/components/modals/create-user-modal';
 
 interface UserProfile {
   id: string;
@@ -21,6 +22,7 @@ export default function UsersPage() {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const supabase = createClientComponentClient();
+  const [showCreateUserModal, setShowCreateUserModal] = useState(false);
 
   useEffect(() => {
     const getSession = async () => {
@@ -93,6 +95,7 @@ export default function UsersPage() {
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">User Management</h1>
+      <Button onClick={() => setShowCreateUserModal(true)} className="mb-4">Create New User</Button>
       {users.length === 0 ? (
         <p>No users found.</p>
       ) : (
@@ -136,6 +139,14 @@ export default function UsersPage() {
           </table>
         </div>
       )}
+      <CreateUserModal
+        isOpen={showCreateUserModal}
+        onClose={() => setShowCreateUserModal(false)}
+        onUserCreated={() => {
+          setShowCreateUserModal(false);
+          fetchUsers();
+        }}
+      />
     </div>
   );
 }
