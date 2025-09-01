@@ -16,7 +16,7 @@ export async function middleware(req: NextRequest) {
   if (session && session.user && userDetails) {
     // Directly query the auth.users table for the banned_until status
     const { data: userData, error: fetchUserError } = await adminSupabase
-      .from('users') // Correct table name for auth users when using admin client
+      .from('auth.users') // Corrected: Specify 'auth' schema for users table
       .select('banned_until')
       .eq('id', session.user.id)
       .single();
@@ -26,6 +26,7 @@ export async function middleware(req: NextRequest) {
     } else if (userData) {
       // Only update the banned_until property
       userDetails.banned_until = userData.banned_until;
+      console.log("Middleware: Successfully fetched banned_until from auth.users:", userData.banned_until); // Added log
     }
   }
 
