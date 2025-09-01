@@ -7,12 +7,23 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
+import { useEffect } from 'react';
+import toast from 'react-hot-toast';
 
 export function ModernSignInPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const router = useRouter();
   const supabase = createClientComponentClient();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const error = searchParams.get('error');
+    if (error === 'banned') {
+      toast.error("Your account has been blocked. Please contact support.");
+    }
+  }, [searchParams]);
 
   const handleSignIn = async () => {
     const { error } = await supabase.auth.signInWithPassword({
