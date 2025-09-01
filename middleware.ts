@@ -21,11 +21,14 @@ export async function middleware(req: NextRequest) {
       // Optionally, handle this error by redirecting or denying access
       // For now, we proceed with potentially stale session user data
     } else if (user) {
+      console.log("Middleware: Fetched User Details from adminSupabase:", user);
       userDetails = user;
     }
   }
 
+  console.log("Middleware: Final userDetails for ban check:", userDetails);
   const isBanned = userDetails?.banned_until && new Date(userDetails.banned_until) > new Date();
+  console.log("Middleware: Is Banned calculated:", isBanned);
   const isSignInPage = req.nextUrl.pathname.startsWith('/sign-in');
   const isDashboardRoute = req.nextUrl.pathname.startsWith('/dashboard');
 
