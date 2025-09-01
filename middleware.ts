@@ -2,6 +2,7 @@ import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
 import { NextResponse } from 'next/server'
 
 import type { NextRequest } from 'next/server'
+import { adminSupabase } from '@/lib/supabase/admin'; // Import adminSupabase
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
@@ -9,11 +10,22 @@ export async function middleware(req: NextRequest) {
 
   const {data: { session }} = await supabase.auth.getSession()
 
-  console.log("Middleware Session:", session);
-  console.log("Middleware User:", session?.user);
-  console.log("Middleware User Banned Until:", session?.user?.banned_until);
-  const isBanned = session?.user?.banned_until && new Date(session.user.banned_until) > new Date();
-  console.log("Is Banned calculated:", isBanned);
+  let userDetails = session?.user;
+
+  if (session && session.user) {
+    // Fetch the latest user details from Supabase admin to ensure banned_until is current
+    const { data: { user }, error: adminUserError } = await adminSupabase.auth.admin.getUserById(session.user.id);
+
+    if (adminUserError) {
+      console.error("Middleware: Error fetching admin user details:", adminUserError);
+      // Optionally, handle this error by redirecting or denying access
+      // For now, we proceed with potentially stale session user data
+    } else if (user) {
+      userDetails = user;
+    }
+  }
+
+  const isBanned = userDetails?.banned_until && new Date(userDetails.banned_until) > new Date();
   const isSignInPage = req.nextUrl.pathname.startsWith('/sign-in');
   const isDashboardRoute = req.nextUrl.pathname.startsWith('/dashboard');
 
