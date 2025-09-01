@@ -3,40 +3,33 @@ import { NextResponse } from 'next/server'
 
 import type { NextRequest } from 'next/server'
 import { adminSupabase } from '@/lib/supabase/admin'; // Import adminSupabase
+import type { User } from '@supabase/supabase-js'; // Import User type
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
   const supabase = createMiddlewareClient({ req, res })
 
-  // Ensure adminSupabase is available for server-side operations
-  if (!adminSupabase) {
-    console.error("Middleware: adminSupabase client is not initialized!");
-    // Potentially redirect to an error page or deny access if critical client is missing
-  }
-
   const {data: { session }} = await supabase.auth.getSession()
 
-  let userDetails = session?.user;
+  let userDetails: User | null = session?.user || null;
 
-  if (session && session.user) {
-    // Fetch the latest user details from Supabase admin to ensure banned_until is current
-    const { data: { user }, error: adminUserError } = await adminSupabase.auth.admin.getUserById(session.user.id);
+  if (session && session.user && userDetails) {
+    // Directly query the auth.users table for the banned_until status
+    const { data: userData, error: fetchUserError } = await adminSupabase
+      .from('users') // Correct table name for auth users when using admin client
+      .select('banned_until')
+      .eq('id', session.user.id)
+      .single();
 
-    console.log("Middleware: Raw data from getUserById:", user);
-    console.log("Middleware: adminUserError from getUserById:", adminUserError);
-
-    if (adminUserError) {
-      console.error("Middleware: Error fetching admin user details from adminSupabase:", adminUserError);
-      // Continue with potentially stale session user data if admin fetch fails
-    } else if (user) {
-      console.log("Middleware: Successfully fetched User Details from adminSupabase:", user);
-      userDetails = user;
+    if (fetchUserError) {
+      console.error("Middleware: Error fetching banned_until from auth.users:", fetchUserError);
+    } else if (userData) {
+      // Only update the banned_until property
+      userDetails.banned_until = userData.banned_until;
     }
   }
 
-  console.log("Middleware: Final userDetails for ban check:", userDetails);
   const isBanned = userDetails?.banned_until && new Date(userDetails.banned_until) > new Date();
-  console.log("Middleware: Is Banned calculated:", isBanned);
   const isSignInPage = req.nextUrl.pathname.startsWith('/sign-in');
   const isDashboardRoute = req.nextUrl.pathname.startsWith('/dashboard');
 
