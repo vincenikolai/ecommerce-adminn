@@ -35,8 +35,25 @@ export function ModernSignInPage() {
       console.error("Error signing in:", error.message, error);
       toast.error("Error signing in: " + error.message);
     } else {
-      router.replace('/');
-      router.refresh();
+      // After successful sign-in, check ban status immediately
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const response = await fetch('/api/check-ban-status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: user.id }),
+        });
+        const { ban_duration } = await response.json();
+
+        if (ban_duration === 'blocked') {
+          toast.error("Your account has been blocked. Please contact support.");
+          await supabase.auth.signOut(); // Sign out the banned user immediately
+          router.refresh(); // Refresh to update session state
+        } else {
+          router.replace('/');
+          router.refresh();
+        }
+      }
     }
   };
 
