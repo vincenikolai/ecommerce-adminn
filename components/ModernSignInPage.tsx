@@ -32,8 +32,8 @@ export function ModernSignInPage() {
     });
 
     if (error) {
-      console.error("Error signing in:", error.message);
-      alert("Error signing in: " + error.message);
+      console.error("Error signing in:", error.message, error);
+      toast.error("Error signing in: " + error.message);
     } else {
       router.replace('/');
       router.refresh();
