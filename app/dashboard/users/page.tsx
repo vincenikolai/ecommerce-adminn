@@ -5,6 +5,7 @@ import { createClientComponentClient, Session } from '@supabase/auth-helpers-nex
 import { Button } from '@/components/ui/button';
 import toast from 'react-hot-toast';
 import { CreateUserModal } from '@/components/modals/create-user-modal';
+import { EditUserModal } from '@/components/modals/edit-user-modal';
 
 interface UserProfile {
   id: string;
@@ -23,6 +24,8 @@ export default function UsersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const supabase = createClientComponentClient();
   const [showCreateUserModal, setShowCreateUserModal] = useState(false);
+  const [showEditUserModal, setShowEditUserModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     const getSession = async () => {
@@ -84,6 +87,11 @@ export default function UsersPage() {
     }
   };
 
+  const handleEditUser = (user: UserProfile) => {
+    setSelectedUser(user);
+    setShowEditUserModal(true);
+  };
+
   if (isLoading) {
     return <div className="p-6">Loading user data...</div>;
   }
@@ -132,6 +140,7 @@ export default function UsersPage() {
                       Block (24h)
                     </Button>
                     <Button onClick={() => handleBlockUnblock(user.id, 'none')}>Unblock</Button>
+                    <Button onClick={() => handleEditUser(user)}>Edit</Button>
                   </td>
                 </tr>
               ))}
@@ -147,6 +156,18 @@ export default function UsersPage() {
           fetchUsers();
         }}
       />
+      {selectedUser && (
+        <EditUserModal
+          isOpen={showEditUserModal}
+          onClose={() => setShowEditUserModal(false)}
+          user={selectedUser}
+          onUserUpdated={() => {
+            setShowEditUserModal(false);
+            fetchUsers();
+            setSelectedUser(null);
+          }}
+        />
+      )}
     </div>
   );
 }
