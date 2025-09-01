@@ -21,14 +21,19 @@ export async function POST(req: Request) {
     }
 
     let bannedUntil: string | null = null;
-    if (ban_duration !== 'none') {
-      const now = new Date();
-      // For '24h', set banned until 24 hours from now. Extend as needed for other durations.
-      if (ban_duration === '24h') {
-        now.setHours(now.getHours() + 24);
-      }
-      // Format to ISO string for Supabase
-      bannedUntil = now.toISOString();
+    let profileBanDuration: string | null = null;
+
+    if (ban_duration === 'blocked') {
+      // Set banned_until to a very distant future date for a permanent block
+      const farFuture = new Date();
+      farFuture.setFullYear(farFuture.getFullYear() + 100); // 100 years from now
+      bannedUntil = farFuture.toISOString();
+      profileBanDuration = 'blocked';
+    } else if (ban_duration === 'unblocked') {
+      bannedUntil = null;
+      profileBanDuration = 'none';
+    } else {
+      return new NextResponse("Invalid ban_duration provided", { status: 400 });
     }
 
     // Update user's banned_until status in Supabase Auth
@@ -44,7 +49,7 @@ export async function POST(req: Request) {
     // Update ban_duration in the profiles table (for display/custom logic)
     const { data, error: profileUpdateError } = await adminSupabase
       .from('profiles')
-      .update({ ban_duration: ban_duration })
+      .update({ ban_duration: profileBanDuration })
       .eq('id', userId);
 
     if (profileUpdateError) {

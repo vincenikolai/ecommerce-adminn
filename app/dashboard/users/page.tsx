@@ -131,15 +131,15 @@ export default function UsersPage() {
                       </span>
                     ) : (
                       <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
-                        Blocked ({user.ban_duration})
+                        Blocked
                       </span>
                     )}
                   </td>
                   <td className="py-2 px-4 border-b space-x-2">
-                    <Button onClick={() => handleBlockUnblock(user.id, '24h')} variant="destructive">
-                      Block (24h)
+                    <Button onClick={() => handleBlockUnblock(user.id, 'blocked')} variant="destructive">
+                      Block
                     </Button>
-                    <Button onClick={() => handleBlockUnblock(user.id, 'none')}>Unblock</Button>
+                    <Button onClick={() => handleBlockUnblock(user.id, 'unblocked')}>Unblock</Button>
                     <Button onClick={() => handleEditUser(user)}>Edit</Button>
                   </td>
                 </tr>
