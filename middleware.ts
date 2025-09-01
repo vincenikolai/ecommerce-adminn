@@ -22,6 +22,9 @@ export async function middleware(req: NextRequest) {
     // Fetch the latest user details from Supabase admin to ensure banned_until is current
     const { data: { user }, error: adminUserError } = await adminSupabase.auth.admin.getUserById(session.user.id);
 
+    console.log("Middleware: Raw data from getUserById:", user);
+    console.log("Middleware: adminUserError from getUserById:", adminUserError);
+
     if (adminUserError) {
       console.error("Middleware: Error fetching admin user details from adminSupabase:", adminUserError);
       // Continue with potentially stale session user data if admin fetch fails
