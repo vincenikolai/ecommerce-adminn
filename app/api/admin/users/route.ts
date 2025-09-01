@@ -20,19 +20,41 @@ export async function POST(req: Request) {
       return new NextResponse("User ID is required", { status: 400 });
     }
 
-    const { data, error } = await adminSupabase
+    let bannedUntil: string | null = null;
+    if (ban_duration !== 'none') {
+      const now = new Date();
+      // For '24h', set banned until 24 hours from now. Extend as needed for other durations.
+      if (ban_duration === '24h') {
+        now.setHours(now.getHours() + 24);
+      }
+      // Format to ISO string for Supabase
+      bannedUntil = now.toISOString();
+    }
+
+    // Update user's banned_until status in Supabase Auth
+    const { error: authUpdateError } = await adminSupabase.auth.admin.updateUserById(userId, {
+      banned_until: bannedUntil,
+    });
+
+    if (authUpdateError) {
+      console.error("Error updating user auth banned_until status:", authUpdateError);
+      return new NextResponse(authUpdateError.message, { status: 500 });
+    }
+
+    // Update ban_duration in the profiles table (for display/custom logic)
+    const { data, error: profileUpdateError } = await adminSupabase
       .from('profiles')
       .update({ ban_duration: ban_duration })
       .eq('id', userId);
 
-    if (error) {
-      console.error("Error updating user ban status:", error);
-      return new NextResponse(error.message, { status: 500 });
+    if (profileUpdateError) {
+      console.error("Error updating user profile ban_duration:", profileUpdateError);
+      return new NextResponse(profileUpdateError.message, { status: 500 });
     }
 
     return NextResponse.json(data);
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Unexpected error in admin users route:", error);
-    return new NextResponse("Internal Server Error", { status: 500 });
+    return new NextResponse(error instanceof Error ? error.message : "Internal Server Error", { status: 500 });
   }
 }
