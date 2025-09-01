@@ -8,6 +8,12 @@ export async function middleware(req: NextRequest) {
   const res = NextResponse.next()
   const supabase = createMiddlewareClient({ req, res })
 
+  // Ensure adminSupabase is available for server-side operations
+  if (!adminSupabase) {
+    console.error("Middleware: adminSupabase client is not initialized!");
+    // Potentially redirect to an error page or deny access if critical client is missing
+  }
+
   const {data: { session }} = await supabase.auth.getSession()
 
   let userDetails = session?.user;
@@ -17,11 +23,10 @@ export async function middleware(req: NextRequest) {
     const { data: { user }, error: adminUserError } = await adminSupabase.auth.admin.getUserById(session.user.id);
 
     if (adminUserError) {
-      console.error("Middleware: Error fetching admin user details:", adminUserError);
-      // Optionally, handle this error by redirecting or denying access
-      // For now, we proceed with potentially stale session user data
+      console.error("Middleware: Error fetching admin user details from adminSupabase:", adminUserError);
+      // Continue with potentially stale session user data if admin fetch fails
     } else if (user) {
-      console.log("Middleware: Fetched User Details from adminSupabase:", user);
+      console.log("Middleware: Successfully fetched User Details from adminSupabase:", user);
       userDetails = user;
     }
   }
