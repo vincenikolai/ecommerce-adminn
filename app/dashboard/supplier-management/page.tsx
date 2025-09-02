@@ -156,7 +156,7 @@ export default function POManagerPage() {
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="name">Name (Alphabetical)</SelectItem>
+              <SelectItem value="name">Item Name (Alphabetical)</SelectItem>
               <SelectItem value="created_at">Date Created</SelectItem>
               <SelectItem value="stock">Stock</SelectItem>
               <SelectItem value="price">Price</SelectItem>
@@ -185,7 +185,7 @@ export default function POManagerPage() {
         <div className="overflow-x-auto">
           <table className="min-w-full bg-white border border-gray-200">
             <thead>
-              <tr><th className="py-2 px-4 border-b text-left">Name</th><th className="py-2 px-4 border-b text-left">Description</th><th className="py-2 px-4 border-b text-left">Price</th><th className="py-2 px-4 border-b text-left">Stock</th><th className="py-2 px-4 border-b text-left">Supplier Shop</th><th className="py-2 px-4 border-b text-left">Date</th><th className="py-2 px-4 border-b text-left">Actions</th></tr>
+              <tr><th className="py-2 px-4 border-b text-left">Item Name</th><th className="py-2 px-4 border-b text-left">Description</th><th className="py-2 px-4 border-b text-left">Price</th><th className="py-2 px-4 border-b text-left">Stock</th><th className="py-2 px-4 border-b text-left">Supplier Shop</th><th className="py-2 px-4 border-b text-left">Date</th><th className="py-2 px-4 border-b text-left">Actions</th></tr>
             </thead>
             <tbody>
               {supplierManagementItems.map((item) => (

@@ -77,7 +77,7 @@ export const EditSupplierManagementModal: React.FC<EditSupplierManagementModalPr
         <form onSubmit={handleSubmit} className="grid gap-4 py-4">
           <div className="grid grid-cols-3 items-center gap-4">
             <Label htmlFor="editName" className="text-left">
-              Name
+              Item Name
             </Label>
             <Input
               id="editName"
