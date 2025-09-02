@@ -26,3 +26,4 @@ export async function POST(req: Request) {
     return new NextResponse(error instanceof Error ? error.message : 'Internal Server Error', { status: 500 });
   }
 }
+

@@ -11,6 +11,10 @@ export async function GET(req: Request) {
   console.log("CANARY TEST: API route /api/admin/users/list hit!");
   // return NextResponse.json({ message: "Canary test successful!" });
 
+  const { searchParams } = new URL(req.url);
+  const sortBy = searchParams.get('sortBy') || 'email';
+  const sortOrder = searchParams.get('sortOrder') || 'asc';
+
   let supabaseUrl = '';
   let supabaseServiceRoleKey = '';
 
@@ -38,11 +42,11 @@ export async function GET(req: Request) {
 
     if (sessionError) {
       console.error("Session error:", sessionError);
-      return new NextResponse(sessionError.message, { status: 401 });
+      return NextResponse.json({ error: sessionError.message }, { status: 401 });
     }
 
     if (!session || session.user?.email !== ADMIN_EMAIL) {
-      return new NextResponse("User not allowed", { status: 403 });
+      return NextResponse.json({ error: "Access Denied: User not allowed." }, { status: 403 });
     }
 
     console.log("Fetching users from Supabase...");
@@ -52,13 +56,13 @@ export async function GET(req: Request) {
 
     if (authError) {
       console.error("Error fetching auth users:", authError);
-      return new NextResponse(authError.message, { status: 500 });
+      return NextResponse.json({ error: authError.message }, { status: 500 });
     }
 
     console.log("Fetched authUsers:", JSON.stringify(authUsers, null, 2));
 
     if (!authUsers || authUsers.users.length === 0) {
-      return new NextResponse("No auth users found or empty list", { status: 404 });
+      return NextResponse.json({ error: "No auth users found or empty list" }, { status: 404 });
     }
 
     const userIds = authUsers.users.map(user => user.id);
@@ -67,18 +71,18 @@ export async function GET(req: Request) {
     // Fetch profiles for these users
     const { data: profiles, error: profileError } = await localAdminSupabase
       .from('profiles')
-      .select('id, first_name, last_name, ban_duration, is_admin')
+      .select('id, first_name, last_name, ban_duration, role')
       .in('id', userIds);
 
     if (profileError) {
       console.error("Error fetching profiles:", profileError);
-      return new NextResponse(profileError.message, { status: 500 });
+      return NextResponse.json({ error: profileError.message }, { status: 500 });
     }
 
     console.log("Fetched profiles:", JSON.stringify(profiles, null, 2));
 
     // Combine data
-    const combinedUsers = authUsers.users.map(authUser => {
+    let combinedUsers = authUsers.users.map(authUser => {
       const profile = profiles?.find(p => p.id === authUser.id);
       return {
         id: authUser.id,
@@ -86,13 +90,45 @@ export async function GET(req: Request) {
         first_name: profile?.first_name || null,
         last_name: profile?.last_name || null,
         ban_duration: profile?.ban_duration || null,
-        is_admin: profile?.is_admin || false,
+        role: profile?.role || "customer", // Default to 'customer' if not set
+        created_at: authUser.created_at, // Add created_at from authUser
       };
+    });
+
+    // Apply sorting
+    combinedUsers.sort((a, b) => {
+      let valA: string | null = null;
+      let valB: string | null = null;
+
+      if (sortBy === "email") {
+        valA = a.email;
+        valB = b.email;
+      } else if (sortBy === "role") {
+        valA = a.role;
+        valB = b.role;
+      } else if (sortBy === "created_at") {
+        valA = a.created_at;
+        valB = b.created_at;
+      }
+
+      if (valA === null && valB === null) return 0;
+      if (valA === null) return sortOrder === "asc" ? 1 : -1;
+      if (valB === null) return sortOrder === "asc" ? -1 : 1;
+
+      if (valA < valB) {
+        return sortOrder === "asc" ? -1 : 1;
+      } else if (valA > valB) {
+        return sortOrder === "asc" ? 1 : -1;
+      }
+      return 0;
     });
 
     return NextResponse.json(combinedUsers);
   } catch (error: unknown) {
     console.error("Unexpected error in admin users list route:", error);
-    return new NextResponse(error instanceof Error ? error.message : "Internal Server Error", { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }

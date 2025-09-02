@@ -5,7 +5,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import toast from "react-hot-toast";
+
+type UserRole = "admin" | "supplier" | "cashier" | "delivery_rider" | "customer";
 
 interface CreateUserModalProps {
   isOpen: boolean;
@@ -18,7 +21,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClos
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [role, setRole] = useState<UserRole>("customer"); // Default role to 'customer'
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -31,7 +34,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClos
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, password, firstName, lastName, isAdmin }),
+        body: JSON.stringify({ email, password, firstName, lastName, role }),
       });
 
       if (!response.ok) {
@@ -47,7 +50,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClos
       setPassword("");
       setFirstName("");
       setLastName("");
-      setIsAdmin(false);
+      setRole("customer"); // Reset role
     } catch (error: any) {
       console.error("Error creating user:", error);
       toast.error(error.message || "An unknown error occurred during user creation.");
@@ -115,16 +118,21 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClos
             />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="isAdmin" className="text-right">
-              Admin
+            <Label htmlFor="role" className="text-right">
+              Role
             </Label>
-            <input
-              id="isAdmin"
-              type="checkbox"
-              checked={isAdmin}
-              onChange={(e) => setIsAdmin(e.target.checked)}
-              className="col-span-3"
-            />
+            <Select onValueChange={(value: UserRole) => setRole(value)} value={role}>
+              <SelectTrigger className="col-span-3">
+                <SelectValue placeholder="Select a role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="admin">Admin</SelectItem>
+                <SelectItem value="supplier">Supplier</SelectItem>
+                <SelectItem value="cashier">Cashier</SelectItem>
+                <SelectItem value="delivery_rider">Delivery Rider</SelectItem>
+                <SelectItem value="customer">Customer</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <Button type="submit" disabled={isLoading}>
             {isLoading ? "Creating..." : "Create User"}

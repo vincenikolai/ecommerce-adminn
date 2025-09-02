@@ -20,7 +20,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Access Denied: Not an administrator." }, { status: 403 });
     }
 
-    const { email, password, firstName, lastName, isAdmin } = await req.json();
+    const { email, password, firstName, lastName, role } = await req.json();
 
     if (!email || !password) {
       return NextResponse.json({ error: "Email and password are required." }, { status: 400 });
@@ -34,7 +34,7 @@ export async function POST(req: Request) {
       user_metadata: {
         first_name: firstName || null,
         last_name: lastName || null,
-        is_admin: isAdmin || false,
+        role: role || "customer", // Set role, default to 'customer'
       },
     });
 
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
       email: user.user.email,
       first_name: firstName || null,
       last_name: lastName || null,
-      is_admin: isAdmin || false,
+      role: role || "customer", // Set role, default to 'customer'
     });
 
     if (insertProfileError) {

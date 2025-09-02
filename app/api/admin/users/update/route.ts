@@ -19,7 +19,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Access Denied: Not an administrator." }, { status: 403 });
     }
 
-    const { userId, firstName, lastName, isAdmin } = await req.json();
+    const { userId, firstName, lastName, role } = await req.json();
 
     if (!userId) {
       return NextResponse.json({ error: "User ID is required." }, { status: 400 });
@@ -30,6 +30,7 @@ export async function POST(req: Request) {
       user_metadata: {
         first_name: firstName || null,
         last_name: lastName || null,
+        role: role,
       },
     });
 
@@ -42,7 +43,7 @@ export async function POST(req: Request) {
     const { error: updateProfileError } = await adminSupabase.from('profiles').update({
       first_name: firstName || null,
       last_name: lastName || null,
-      is_admin: isAdmin,
+      role: role,
     }).eq('id', userId);
 
     if (updateProfileError) {

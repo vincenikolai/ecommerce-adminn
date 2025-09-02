@@ -5,3 +5,4 @@ declare module '@supabase/supabase-js' {
     banned_until?: string | null;
   }
 }
+
