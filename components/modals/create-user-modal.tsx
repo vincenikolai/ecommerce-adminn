@@ -7,8 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import toast from "react-hot-toast";
-
-type UserRole = "admin" | "supplier" | "cashier" | "delivery_rider" | "customer";
+import { UserProfile, UserRole } from '@/types/user'; // Import UserRole
 
 interface CreateUserModalProps {
   isOpen: boolean;
@@ -127,9 +126,7 @@ export const CreateUserModal: React.FC<CreateUserModalProps> = ({ isOpen, onClos
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="supplier">Supplier</SelectItem>
-                <SelectItem value="cashier">Cashier</SelectItem>
-                <SelectItem value="delivery_rider">Delivery Rider</SelectItem>
+                <SelectItem value="purchase_order_manager">Purchase Order Manager</SelectItem>
                 <SelectItem value="customer">Customer</SelectItem>
               </SelectContent>
             </Select>

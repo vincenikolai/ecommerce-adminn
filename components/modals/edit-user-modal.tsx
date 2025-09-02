@@ -7,17 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import toast from "react-hot-toast";
-
-type UserRole = "admin" | "supplier" | "cashier" | "delivery_rider" | "customer";
-
-interface UserProfile {
-  id: string;
-  email: string;
-  first_name: string | null;
-  last_name: string | null;
-  ban_duration: string | null;
-  role: UserRole; // Replace is_admin with role
-}
+import { UserProfile, UserRole } from '@/types/user'; // Import UserProfile and UserRole
 
 interface EditUserModalProps {
   isOpen: boolean;
@@ -111,9 +101,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, u
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="admin">Admin</SelectItem>
-                <SelectItem value="supplier">Supplier</SelectItem>
-                <SelectItem value="cashier">Cashier</SelectItem>
-                <SelectItem value="delivery_rider">Delivery Rider</SelectItem>
+                <SelectItem value="purchase_order_manager">Purchase Order Manager</SelectItem>
                 <SelectItem value="customer">Customer</SelectItem>
               </SelectContent>
             </Select>

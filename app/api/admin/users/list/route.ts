@@ -22,9 +22,10 @@ export async function GET(req: Request) {
     supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
     supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
-    // Log environment variables (masked for security) to verify they are loaded
-    console.log("NEXT_PUBLIC_SUPABASE_URL loaded:", !!supabaseUrl);
-    console.log("SUPABASE_SERVICE_ROLE_KEY loaded:", !!supabaseServiceRoleKey);
+    // --- ADDED FOR DEBUGGING --- START
+    console.log("DEBUG: NEXT_PUBLIC_SUPABASE_URL loaded in API:", !!supabaseUrl ? "Loaded" : "Not loaded");
+    console.log("DEBUG: SUPABASE_SERVICE_ROLE_KEY loaded in API:", !!supabaseServiceRoleKey ? "Loaded" : "Not loaded");
+    // --- ADDED FOR DEBUGGING --- END
 
     if (!supabaseUrl || !supabaseServiceRoleKey) {
       throw new Error('Missing environment variables for Supabase admin client in API route');

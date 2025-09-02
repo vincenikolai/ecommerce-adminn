@@ -8,17 +8,7 @@ import { CreateUserModal } from '@/components/modals/create-user-modal';
 import { EditUserModal } from '@/components/modals/edit-user-modal';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-
-interface UserProfile {
-  id: string;
-  email: string;
-  first_name: string | null;
-  last_name: string | null;
-  ban_duration: string | null;
-  role: UserRole; // Replace is_admin with role property
-}
-
-type UserRole = "admin" | "supplier" | "cashier" | "delivery_rider" | "customer";
+import { UserProfile, UserRole } from '@/types/user'; // Import UserProfile and UserRole
 
 const ADMIN_EMAIL = "eastlachemicals@gmail.com";
 
@@ -157,14 +147,7 @@ export default function UsersPage() {
         <div className="overflow-x-auto">
           <table className="min-w-full bg-white border border-gray-200">
             <thead>
-              <tr>
-                <th className="py-2 px-4 border-b text-left">Email</th>
-                <th className="py-2 px-4 border-b text-left">First Name</th>
-                <th className="py-2 px-4 border-b text-left">Last Name</th>
-                <th className="py-2 px-4 border-b text-left">Role</th> {/* New Role column */}
-                <th className="py-2 px-4 border-b text-left">Status</th>
-                <th className="py-2 px-4 border-b text-left">Actions</th>
-              </tr>
+              <tr><th className="py-2 px-4 border-b text-left">Email</th><th className="py-2 px-4 border-b text-left">First Name</th><th className="py-2 px-4 border-b text-left">Last Name</th><th className="py-2 px-4 border-b text-left">Role</th> {/* New Role column */}<th className="py-2 px-4 border-b text-left">Status</th><th className="py-2 px-4 border-b text-left">Actions</th></tr>
             </thead>
             <tbody>
               {users.map((user) => (
