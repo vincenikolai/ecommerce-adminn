@@ -3,9 +3,10 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { UserProfile, UserRole } from '@/types/user';
+import { SupplierManagementItem } from '@/types/supplier-management'; // Import new type
 
 const ADMIN_EMAIL = "eastlachemicals@gmail.com";
-const RAW_MATERIAL_MANAGER_ROLE: UserRole = "raw_material_manager"; // Renamed role constant
+const SUPPLIER_MANAGEMENT_MANAGER_ROLE: UserRole = "supplier_management_manager"; // Renamed role constant
 
 export async function GET(req: Request) {
   let supabaseUrl = '';
@@ -49,7 +50,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: profileError.message }, { status: 500 });
     }
 
-    if (!profile || (profile.role !== RAW_MATERIAL_MANAGER_ROLE && session.user?.email !== ADMIN_EMAIL)) {
+    if (!profile || (profile.role !== SUPPLIER_MANAGEMENT_MANAGER_ROLE && session.user?.email !== ADMIN_EMAIL)) {
       return NextResponse.json({ error: "Access Denied: Insufficient privileges." }, { status: 403 });
     }
 
@@ -57,23 +58,23 @@ export async function GET(req: Request) {
     const sortBy = searchParams.get('sortBy') || 'name';
     const sortOrder = searchParams.get('sortOrder') || 'asc';
 
-    console.log("Fetching raw materials from Supabase...");
+    console.log("Fetching supplier management items from Supabase...");
 
-    let { data: products, error: productsError } = await localAdminSupabase
-      .from('products') // Still pointing to 'products' table, will be changed in a later step
+    let { data: supplierManagementItems, error: fetchError } = await localAdminSupabase
+      .from('supplier_management_items') // Updated table name
       .select('*'); // Select all columns for now
 
-    if (productsError) {
-      console.error("Error fetching raw materials:", productsError);
-      return NextResponse.json({ error: productsError.message }, { status: 500 });
+    if (fetchError) {
+      console.error("Error fetching supplier management items:", fetchError);
+      return NextResponse.json({ error: fetchError.message }, { status: 500 });
     }
 
-    if (!products) {
-      products = [];
+    if (!supplierManagementItems) {
+      supplierManagementItems = [];
     }
 
     // Apply sorting
-    products.sort((a, b) => {
+    supplierManagementItems.sort((a, b) => {
       let valA: string | number | null = null;
       let valB: string | number | null = null;
 
@@ -89,6 +90,12 @@ export async function GET(req: Request) {
       } else if (sortBy === "price") {
         valA = a.price;
         valB = b.price;
+      } else if (sortBy === "supplier_shop") { // New sorting option
+        valA = a.supplier_shop;
+        valB = b.supplier_shop;
+      } else if (sortBy === "date") { // New sorting option
+        valA = a.date;
+        valB = b.date;
       }
 
       if (valA === null && valB === null) return 0;
@@ -103,9 +110,9 @@ export async function GET(req: Request) {
       return 0;
     });
 
-    return NextResponse.json(products);
+    return NextResponse.json(supplierManagementItems);
   } catch (error: unknown) {
-    console.error("Unexpected error in raw material list API:", error);
+    console.error("Unexpected error in supplier management item list API:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Internal Server Error" },
       { status: 500 }

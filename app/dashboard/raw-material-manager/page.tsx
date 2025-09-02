@@ -11,7 +11,7 @@ import { EditProductModal } from '@/components/modals/edit-product-modal';
 import { Label } from '@/components/ui/label'; // Import Label
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Import Select components
 
-const RAW_MATERIAL_MANAGER_ROLE: UserRole = "raw_material_manager"; // Renamed role constant
+const SUPPLIER_MANAGEMENT_MANAGER_ROLE: UserRole = "supplier_management_manager"; // Renamed role constant
 
 export default function POManagerPage() {
   const [session, setSession] = useState<Session | null>(null);
@@ -58,17 +58,17 @@ export default function POManagerPage() {
 
   const fetchProducts = async () => {
     // Implement product fetching logic here, similar to fetchUsers
-    // This will call a new API route: /api/admin/raw-materials/list
+    // This will call a new API route: /api/admin/supplier-management/list
     setIsLoading(true);
     try {
       const params = new URLSearchParams({
         sortBy: sortBy,
         sortOrder: sortOrder,
       }).toString();
-      const response = await fetch(`/api/admin/raw-materials/list?${params}`);
+      const response = await fetch(`/api/admin/supplier-management/list?${params}`);
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to fetch raw materials");
+        throw new Error(errorData.error || "Failed to fetch supplier management items");
       }
       const data: Product[] = await response.json();
       setProducts(data);
@@ -81,15 +81,15 @@ export default function POManagerPage() {
   };
 
   useEffect(() => {
-    if (session && userRole === RAW_MATERIAL_MANAGER_ROLE) {
+    if (session && userRole === SUPPLIER_MANAGEMENT_MANAGER_ROLE) {
       fetchProducts();
     }
   }, [session, userRole, sortBy, sortOrder]);
 
   const handleCreateProduct = async (newProduct: Product) => {
-    // Optimistically add the new raw material to the list
+    // Optimistically add the new supplier management item to the list
     setProducts((prevProducts) => [...prevProducts, newProduct]);
-    toast.success("Raw material created successfully!");
+    toast.success("Supplier management item created successfully!");
     fetchProducts(); // Re-fetch to ensure data consistency and sorting
   };
 
@@ -102,19 +102,19 @@ export default function POManagerPage() {
     setProducts((prevProducts) =>
       prevProducts.map((p) => (p.id === updatedProduct.id ? updatedProduct : p))
     );
-    toast.success("Raw material updated successfully!");
+    toast.success("Supplier management item updated successfully!");
     setShowEditProductModal(false);
     setSelectedProduct(null);
     fetchProducts(); // Re-fetch to ensure data consistency and sorting
   };
 
   const handleDeleteProduct = async (productId: string) => {
-    if (!window.confirm("Are you sure you want to delete this raw material?")) {
+    if (!window.confirm("Are you sure you want to delete this supplier management item?")) {
       return;
     }
 
     try {
-      const response = await fetch("/api/admin/raw-materials/delete", {
+      const response = await fetch("/api/admin/supplier-management/delete", {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -124,29 +124,29 @@ export default function POManagerPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to delete raw material");
+        throw new Error(errorData.error || "Failed to delete supplier management item");
       }
 
-      toast.success("Raw material deleted successfully!");
+      toast.success("Supplier management item deleted successfully!");
       setProducts((prevProducts) => prevProducts.filter((p) => p.id !== productId));
     } catch (error: unknown) {
-      console.error("Error deleting raw material:", error);
+      console.error("Error deleting supplier management item:", error);
       toast.error("Error: " + (error instanceof Error ? error.message : "An unknown error occurred"));
     }
   };
 
   if (isLoading) {
-    return <div className="p-6">Loading raw material data...</div>;
+    return <div className="p-6">Loading supplier management data...</div>;
   }
 
-  if (!session || userRole !== RAW_MATERIAL_MANAGER_ROLE) {
-    return <div className="p-6 text-red-500">Access Denied: You do not have "Raw Material Manager" privileges to view this page.</div>;
+  if (!session || userRole !== SUPPLIER_MANAGEMENT_MANAGER_ROLE) {
+    return <div className="p-6 text-red-500">Access Denied: You do not have "Supplier Management Manager" privileges to view this page.</div>;
   }
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Raw Material Manager - Raw Material List</h1>
-      <Button onClick={() => setShowCreateProductModal(true)} className="mb-4">Add New Raw Material</Button>
+      <h1 className="text-2xl font-bold mb-6">Supplier Management - Item List</h1>
+      <Button onClick={() => setShowCreateProductModal(true)} className="mb-4">Add New Supplier Management Item</Button>
 
       <div className="flex space-x-4 mb-4">
         <div>
@@ -178,7 +178,7 @@ export default function POManagerPage() {
       </div>
 
       {products.length === 0 ? (
-        <p>No raw materials found.</p>
+        <p>No supplier management items found.</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full bg-white border border-gray-200">

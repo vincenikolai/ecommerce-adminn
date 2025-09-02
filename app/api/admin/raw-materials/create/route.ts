@@ -6,7 +6,7 @@ import { Product } from '@/types/product';
 import { UserProfile, UserRole } from '@/types/user';
 
 const ADMIN_EMAIL = "eastlachemicals@gmail.com";
-const RAW_MATERIAL_MANAGER_ROLE: UserRole = "raw_material_manager"; // Renamed role constant
+const SUPPLIER_MANAGEMENT_MANAGER_ROLE: UserRole = "supplier_management_manager"; // Renamed role constant
 
 export async function POST(req: Request) {
   let supabaseUrl = '';
@@ -50,14 +50,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: profileError.message }, { status: 500 });
     }
 
-    if (!profile || (profile.role !== RAW_MATERIAL_MANAGER_ROLE && session.user?.email !== ADMIN_EMAIL)) {
+    if (!profile || (profile.role !== SUPPLIER_MANAGEMENT_MANAGER_ROLE && session.user?.email !== ADMIN_EMAIL)) {
       return NextResponse.json({ error: "Access Denied: Insufficient privileges." }, { status: 403 });
     }
 
     const { name, description, price, stock } = await req.json() as Product;
 
     if (!name || !price || stock === undefined) {
-      return NextResponse.json({ error: "Name, price, and stock for raw material are required." }, { status: 400 });
+      return NextResponse.json({ error: "Name, price, and stock for supplier management item are required." }, { status: 400 });
     }
 
     const { data, error: insertError } = await localAdminSupabase
@@ -66,13 +66,13 @@ export async function POST(req: Request) {
       .select();
 
     if (insertError) {
-      console.error("Error inserting raw material:", insertError);
+      console.error("Error inserting supplier management item:", insertError);
       return NextResponse.json({ error: insertError.message }, { status: 500 });
     }
 
-    return NextResponse.json({ message: "Raw material created successfully", product: data[0] });
+    return NextResponse.json({ message: "Supplier management item created successfully", product: data[0] });
   } catch (error: unknown) {
-    console.error("Unexpected error in raw material creation API:", error);
+    console.error("Unexpected error in supplier management item creation API:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Internal Server Error" },
       { status: 500 }

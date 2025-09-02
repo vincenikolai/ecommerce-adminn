@@ -2,13 +2,12 @@ import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { Product } from '@/types/product';
 import { UserProfile, UserRole } from '@/types/user';
 
 const ADMIN_EMAIL = "eastlachemicals@gmail.com";
-const RAW_MATERIAL_MANAGER_ROLE: UserRole = "raw_material_manager"; // Renamed role constant
+const SUPPLIER_MANAGEMENT_MANAGER_ROLE: UserRole = "supplier_management_manager"; // Renamed role constant
 
-export async function POST(req: Request) {
+export async function DELETE(req: Request) {
   let supabaseUrl = '';
   let supabaseServiceRoleKey = '';
 
@@ -50,29 +49,29 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: profileError.message }, { status: 500 });
     }
 
-    if (!profile || (profile.role !== RAW_MATERIAL_MANAGER_ROLE && session.user?.email !== ADMIN_EMAIL)) {
+    if (!profile || (profile.role !== SUPPLIER_MANAGEMENT_MANAGER_ROLE && session.user?.email !== ADMIN_EMAIL)) {
       return NextResponse.json({ error: "Access Denied: Insufficient privileges." }, { status: 403 });
     }
 
-    const { name, description, price, stock } = await req.json() as Product;
+    const { id } = await req.json();
 
-    if (!name || !price || stock === undefined) {
-      return NextResponse.json({ error: "Name, price, and stock for raw material are required." }, { status: 400 });
+    if (!id) {
+      return NextResponse.json({ error: "Supplier management item ID is required." }, { status: 400 });
     }
 
-    const { data, error: insertError } = await localAdminSupabase
+    const { error: deleteError } = await localAdminSupabase
       .from('products') // Still pointing to 'products' table, will be changed in a later step
-      .insert([{ name, description, price, stock }])
-      .select();
+      .delete()
+      .eq('id', id);
 
-    if (insertError) {
-      console.error("Error inserting raw material:", insertError);
-      return NextResponse.json({ error: insertError.message }, { status: 500 });
+    if (deleteError) {
+      console.error("Error deleting supplier management item:", deleteError);
+      return NextResponse.json({ error: deleteError.message }, { status: 500 });
     }
 
-    return NextResponse.json({ message: "Raw material created successfully", product: data[0] });
+    return NextResponse.json({ message: "Supplier management item deleted successfully", id });
   } catch (error: unknown) {
-    console.error("Unexpected error in raw material creation API:", error);
+    console.error("Unexpected error in supplier management item deletion API:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Internal Server Error" },
       { status: 500 }

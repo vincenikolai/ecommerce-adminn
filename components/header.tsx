@@ -12,7 +12,7 @@ import { UserProfile, UserRole } from '@/types/user';
 import { Menu, X } from "lucide-react"; // Import Menu and X icons
 
 const ADMIN_EMAIL = "eastlachemicals@gmail.com";
-const PURCHASE_ORDER_MANAGER_ROLE: UserRole = "purchase_order_manager";
+const SUPPLIER_MANAGEMENT_MANAGER_ROLE: UserRole = "supplier_management_manager"; // Renamed role constant
 
 export function Header() {
   const router = useRouter();
@@ -21,6 +21,7 @@ export function Header() {
   const [lastName, setLastName] = useState('');
   const [userRole, setUserRole] = useState<UserRole | null>(null); // New state for user role
   const [isMenuOpen, setIsMenuOpen] = useState(false); // State for mobile menu
+  const [showAdminDropdown, setShowAdminDropdown] = useState(false); // New state for admin dropdown
   const supabase = createClientComponentClient();
 
   useEffect(() => {
@@ -76,6 +77,15 @@ export function Header() {
 
   const toggleMenu = () => {
     setIsMenuOpen(!isMenuOpen);
+    setShowAdminDropdown(false); // Close dropdown when mobile menu is toggled
+  };
+
+  const toggleAdminDropdown = () => {
+    setShowAdminDropdown(!showAdminDropdown);
+  };
+
+  const closeAdminDropdown = () => {
+    setShowAdminDropdown(false);
   };
 
   return (
@@ -113,36 +123,47 @@ export function Header() {
       <nav className={`fixed md:relative top-0 md:top-auto bottom-0 left-0 h-full md:h-auto w-64 md:w-auto bg-white shadow-md md:shadow-none p-4 md:p-0 transition-transform duration-300 ease-in-out transform ${isMenuOpen ? 'translate-x-0' : '-translate-x-full'} md:translate-x-0 md:flex flex-1 justify-center z-20`}>
         <ul className="flex flex-col md:flex-row gap-4 md:gap-6 text-base font-medium md:items-center items-start w-full md:w-auto">
           <li>
-            <Link href="/" onClick={() => setIsMenuOpen(false)}>Home</Link>
+            <Link href="/" onClick={() => { setIsMenuOpen(false); closeAdminDropdown(); }}>Home</Link>
           </li>
           <li>
-            <Link href="/products" onClick={() => setIsMenuOpen(false)}>Products</Link>
+            <Link href="/products" onClick={() => { setIsMenuOpen(false); closeAdminDropdown(); }}>Products</Link>
           </li>
           <li>
-            <Link href="/ordering" onClick={() => setIsMenuOpen(false)}>Ordering</Link>
+            <Link href="/ordering" onClick={() => { setIsMenuOpen(false); closeAdminDropdown(); }}>Ordering</Link>
           </li>
           <li>
-            <Link href="/contact" onClick={() => setIsMenuOpen(false)}>Contact us</Link>
+            <Link href="/contact" onClick={() => { setIsMenuOpen(false); closeAdminDropdown(); }}>Contact us</Link>
           </li>
           <li>
-            <Link href="/reviews" onClick={() => setIsMenuOpen(false)}>Reviews</Link>
+            <Link href="/reviews" onClick={() => { setIsMenuOpen(false); closeAdminDropdown(); }}>Reviews</Link>
           </li>
           <li>
-            <Link href="/order-history" onClick={() => setIsMenuOpen(false)}>Order History</Link>
+            <Link href="/order-history" onClick={() => { setIsMenuOpen(false); closeAdminDropdown(); }}>Order History</Link>
           </li>
           <li>
-            <Link href="/order-status" onClick={() => setIsMenuOpen(false)}>Order status</Link>
+            <Link href="/order-status" onClick={() => { setIsMenuOpen(false); closeAdminDropdown(); }}>Order status</Link>
           </li>
-          {session && userRole === "admin" && (
-            <li>
-              <Link href="/dashboard/users" onClick={() => setIsMenuOpen(false)}>User Dashboard</Link>
+          {(session && userRole === "admin") || (session && userRole === SUPPLIER_MANAGEMENT_MANAGER_ROLE) ? (
+            <li className="relative">
+              <Button variant="ghost" onClick={toggleAdminDropdown} className="focus:outline-none">
+                Dashboard
+              </Button>
+              {showAdminDropdown && (
+                <ul className="absolute bg-white shadow-lg rounded-md mt-2 py-1 w-48 z-30">
+                  {session && userRole === "admin" && (
+                    <li>
+                      <Link href="/dashboard/users" className="block px-4 py-2 hover:bg-gray-100" onClick={() => { setIsMenuOpen(false); closeAdminDropdown(); }}>User Dashboard</Link>
+                    </li>
+                  )}
+                  {session && userRole === SUPPLIER_MANAGEMENT_MANAGER_ROLE && (
+                    <li>
+                      <Link href="/dashboard/supplier-management" className="block px-4 py-2 hover:bg-gray-100" onClick={() => { setIsMenuOpen(false); closeAdminDropdown(); }}>Supplier Management</Link>
+                    </li>
+                  )}
+                </ul>
+              )}
             </li>
-          )}
-          {session && userRole === PURCHASE_ORDER_MANAGER_ROLE && (
-            <li>
-              <Link href="/dashboard/po-manager" onClick={() => setIsMenuOpen(false)}>PO Manager</Link>
-            </li>
-          )}
+          ) : null}
           <li className="md:ml-auto w-full md:w-auto mt-4 md:mt-0">
             <Link href="/order-now" className="block">
               <span className="bg-blue-500 text-white px-4 py-2 rounded-full font-semibold hover:bg-blue-600 transition-colors text-center block md:inline-block">
