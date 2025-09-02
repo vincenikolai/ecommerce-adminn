@@ -8,6 +8,8 @@ import { Product } from '@/types/product'; // Import Product interface
 import { Button } from '@/components/ui/button'; // Import Button component
 import { CreateProductModal } from '@/components/modals/create-product-modal';
 import { EditProductModal } from '@/components/modals/edit-product-modal';
+import { Label } from '@/components/ui/label'; // Import Label
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Import Select components
 
 const PURCHASE_ORDER_MANAGER_ROLE = "purchase_order_manager";
 
@@ -20,6 +22,8 @@ export default function POManagerPage() {
   const [showCreateProductModal, setShowCreateProductModal] = useState(false); // State for create modal
   const [showEditProductModal, setShowEditProductModal] = useState(false);   // State for edit modal
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null); // State for selected product to edit
+  const [sortBy, setSortBy] = useState<"name" | "created_at" | "stock" | "price">("name");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
 
   useEffect(() => {
     const getSessionAndRole = async () => {
@@ -57,7 +61,11 @@ export default function POManagerPage() {
     // This will call a new API route: /api/admin/products/list
     setIsLoading(true);
     try {
-      const response = await fetch("/api/admin/products/list");
+      const params = new URLSearchParams({
+        sortBy: sortBy,
+        sortOrder: sortOrder,
+      }).toString();
+      const response = await fetch(`/api/admin/products/list?${params}`);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to fetch products");
@@ -76,7 +84,7 @@ export default function POManagerPage() {
     if (session && userRole === PURCHASE_ORDER_MANAGER_ROLE) {
       fetchProducts();
     }
-  }, [session, userRole]);
+  }, [session, userRole, sortBy, sortOrder]);
 
   const handleCreateProduct = async (newProduct: Product) => {
     // Optimistically add the new product to the list
@@ -139,24 +147,47 @@ export default function POManagerPage() {
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">PO Manager - Product List</h1>
       <Button onClick={() => setShowCreateProductModal(true)} className="mb-4">Add New Product</Button>
+
+      <div className="flex space-x-4 mb-4">
+        <div>
+          <Label htmlFor="sortBy">Sort By</Label>
+          <Select onValueChange={(value: "name" | "created_at" | "stock" | "price") => setSortBy(value)} value={sortBy}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="name">Name (Alphabetical)</SelectItem>
+              <SelectItem value="created_at">Date Created</SelectItem>
+              <SelectItem value="stock">Stock</SelectItem>
+              <SelectItem value="price">Price</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label htmlFor="sortOrder">Sort Order</Label>
+          <Select onValueChange={(value: "asc" | "desc") => setSortOrder(value)} value={sortOrder}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Sort order" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="asc">Ascending</SelectItem>
+              <SelectItem value="desc">Descending</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
       {products.length === 0 ? (
         <p>No products found.</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full bg-white border border-gray-200">
             <thead>
-              <tr><th className="py-2 px-4 border-b text-left">ID</th>
-                <th className="py-2 px-4 border-b text-left">Name</th>
-                <th className="py-2 px-4 border-b text-left">Description</th>
-                <th className="py-2 px-4 border-b text-left">Price</th>
-                <th className="py-2 px-4 border-b text-left">Stock</th>
-                <th className="py-2 px-4 border-b text-left">Actions</th> {/* New Actions column */}
-              </tr>
+              <tr><th className="py-2 px-4 border-b text-left">Name</th><th className="py-2 px-4 border-b text-left">Description</th><th className="py-2 px-4 border-b text-left">Price</th><th className="py-2 px-4 border-b text-left">Stock</th><th className="py-2 px-4 border-b text-left">Actions</th> {/* New Actions column */}</tr>
             </thead>
             <tbody>
               {products.map((product) => (
                 <tr key={product.id} className="hover:bg-gray-50">
-                  <td className="py-2 px-4 border-b">{product.id}</td>
                   <td className="py-2 px-4 border-b">{product.name}</td>
                   <td className="py-2 px-4 border-b">{product.description}</td>
                   <td className="py-2 px-4 border-b">{product.price}</td>

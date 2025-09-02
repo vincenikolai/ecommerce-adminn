@@ -49,14 +49,17 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: profileError.message }, { status: 500 });
     }
 
-    if (!profile || profile.role !== PURCHASE_ORDER_MANAGER_ROLE && session.user?.email !== ADMIN_EMAIL) {
+    if (!profile || (profile.role !== PURCHASE_ORDER_MANAGER_ROLE && session.user?.email !== ADMIN_EMAIL)) {
       return NextResponse.json({ error: "Access Denied: Insufficient privileges." }, { status: 403 });
     }
 
+    const { searchParams } = new URL(req.url);
+    const sortBy = searchParams.get('sortBy') || 'name';
+    const sortOrder = searchParams.get('sortOrder') || 'asc';
+
     console.log("Fetching products from Supabase...");
 
-    // Fetch products from a 'products' table (assuming it exists)
-    const { data: products, error: productsError } = await localAdminSupabase
+    let { data: products, error: productsError } = await localAdminSupabase
       .from('products')
       .select('*'); // Select all columns for now
 
@@ -64,6 +67,41 @@ export async function GET(req: Request) {
       console.error("Error fetching products:", productsError);
       return NextResponse.json({ error: productsError.message }, { status: 500 });
     }
+
+    if (!products) {
+      products = [];
+    }
+
+    // Apply sorting
+    products.sort((a, b) => {
+      let valA: string | number | null = null;
+      let valB: string | number | null = null;
+
+      if (sortBy === "name") {
+        valA = a.name;
+        valB = b.name;
+      } else if (sortBy === "created_at") {
+        valA = a.created_at;
+        valB = b.created_at;
+      } else if (sortBy === "stock") {
+        valA = a.stock;
+        valB = b.stock;
+      } else if (sortBy === "price") {
+        valA = a.price;
+        valB = b.price;
+      }
+
+      if (valA === null && valB === null) return 0;
+      if (valA === null) return sortOrder === "asc" ? 1 : -1;
+      if (valB === null) return sortOrder === "asc" ? -1 : 1;
+
+      if (valA < valB) {
+        return sortOrder === "asc" ? -1 : 1;
+      } else if (valA > valB) {
+        return sortOrder === "asc" ? 1 : -1;
+      }
+      return 0;
+    });
 
     return NextResponse.json(products);
   } catch (error: unknown) {

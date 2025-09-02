@@ -102,7 +102,7 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({ isOpen, onCl
               id="editPrice"
               type="number"
               value={price}
-              onChange={(e) => setPrice(parseFloat(e.target.value))}
+              onChange={(e) => setPrice(e.target.value === '' ? 0 : parseFloat(e.target.value))}
               required
               className="col-span-3"
             />
@@ -115,7 +115,7 @@ export const EditProductModal: React.FC<EditProductModalProps> = ({ isOpen, onCl
               id="editStock"
               type="number"
               value={stock}
-              onChange={(e) => setStock(parseInt(e.target.value, 10))}
+              onChange={(e) => setStock(e.target.value === '' ? 0 : parseInt(e.target.value, 10))}
               required
               className="col-span-3"
             />
