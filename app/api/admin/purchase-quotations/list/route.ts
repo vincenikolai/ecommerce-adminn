@@ -54,7 +54,17 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: profileError.message }, { status: 500 });
     }
 
-    if (!profile || ((profile.role !== PURCHASE_QUOTATION_MANAGER_ROLE && profile.role !== PURCHASING_MANAGER_ROLE) && session.user?.email !== ADMIN_EMAIL)) {
+    // Detailed logging for debugging access control
+    console.log("Debug - profile.role:", profile?.role);
+    console.log("Debug - PURCHASE_QUOTATION_MANAGER_ROLE:", PURCHASE_QUOTATION_MANAGER_ROLE);
+    console.log("Debug - PURCHASING_MANAGER_ROLE:", PURCHASING_MANAGER_ROLE);
+    console.log("Debug - session.user?.email:", session.user?.email);
+    console.log("Debug - ADMIN_EMAIL:", ADMIN_EMAIL);
+    console.log("Debug - profile.role === PURCHASE_QUOTATION_MANAGER_ROLE:", profile?.role === PURCHASE_QUOTATION_MANAGER_ROLE);
+    console.log("Debug - profile.role === PURCHASING_MANAGER_ROLE:", profile?.role === PURCHASING_MANAGER_ROLE);
+    console.log("Debug - session.user?.email === ADMIN_EMAIL:", session.user?.email === ADMIN_EMAIL);
+
+    if (!profile || (profile.role !== PURCHASE_QUOTATION_MANAGER_ROLE && profile.role !== PURCHASING_MANAGER_ROLE && session.user?.email !== ADMIN_EMAIL)) {
       console.error("API Route - Access Denied: Insufficient privileges for Purchase Quotation Manager.");
       return NextResponse.json({ error: "Access Denied: Insufficient privileges for Purchase Quotation Manager." }, { status: 403 });
     }

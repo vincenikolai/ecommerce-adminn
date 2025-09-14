@@ -8,6 +8,7 @@ import { SupplierManagementItem } from '@/types/supplier-management'; // Import 
 const ADMIN_EMAIL = "eastlachemicals@gmail.com";
 const SUPPLIER_MANAGEMENT_MANAGER_ROLE: UserRole = "supplier_management_manager"; // Renamed role constant
 const PURCHASE_QUOTATION_MANAGER_ROLE: UserRole = "purchase_quotation_manager"; // New role constant
+const PURCHASING_MANAGER_ROLE: UserRole = "purchasing_manager"; // Added Purchasing Manager Role
 
 export async function GET(req: Request) {
   let supabaseUrl = '';
@@ -56,13 +57,15 @@ export async function GET(req: Request) {
     console.log("Debug - profile.role:", profile?.role);
     console.log("Debug - SUPPLIER_MANAGEMENT_MANAGER_ROLE:", SUPPLIER_MANAGEMENT_MANAGER_ROLE);
     console.log("Debug - PURCHASE_QUOTATION_MANAGER_ROLE:", PURCHASE_QUOTATION_MANAGER_ROLE);
+    console.log("Debug - PURCHASING_MANAGER_ROLE:", PURCHASING_MANAGER_ROLE);
     console.log("Debug - session.user?.email:", session.user?.email);
     console.log("Debug - ADMIN_EMAIL:", ADMIN_EMAIL);
     console.log("Debug - profile.role === SUPPLIER_MANAGEMENT_MANAGER_ROLE:", profile?.role === SUPPLIER_MANAGEMENT_MANAGER_ROLE);
     console.log("Debug - profile.role === PURCHASE_QUOTATION_MANAGER_ROLE:", profile?.role === PURCHASE_QUOTATION_MANAGER_ROLE);
+    console.log("Debug - profile.role === PURCHASING_MANAGER_ROLE:", profile?.role === PURCHASING_MANAGER_ROLE);
     console.log("Debug - session.user?.email === ADMIN_EMAIL:", session.user?.email === ADMIN_EMAIL);
 
-    if (!profile || (profile.role !== SUPPLIER_MANAGEMENT_MANAGER_ROLE && profile.role !== PURCHASE_QUOTATION_MANAGER_ROLE && session.user?.email !== ADMIN_EMAIL)) {
+    if (!profile || (profile.role !== SUPPLIER_MANAGEMENT_MANAGER_ROLE && profile.role !== PURCHASE_QUOTATION_MANAGER_ROLE && profile.role !== PURCHASING_MANAGER_ROLE && session.user?.email !== ADMIN_EMAIL)) {
       console.error("API Route - Access Denied: Insufficient privileges.");
       return NextResponse.json({ error: "Access Denied: Insufficient privileges." }, { status: 403 });
     }
