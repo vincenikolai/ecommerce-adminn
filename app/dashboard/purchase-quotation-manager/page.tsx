@@ -28,7 +28,7 @@ export default function PurchaseQuotationPage() {
   const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(null);
   const [quotedPrice, setQuotedPrice] = useState<string>("");
   const [validityDate, setValidityDate] = useState<string>("");
-  const [selectedMaterials, setSelectedMaterials] = useState<{ rawMaterialId: string; quantity: number }[]>([]);
+  const [selectedMaterials, setSelectedMaterials] = useState<{ rawmaterialid: string; quantity: number }[]>([]);
   const [editingQuotationId, setEditingQuotationId] = useState<string | null>(null);
 
   const initialFormState = {
@@ -127,28 +127,28 @@ export default function PurchaseQuotationPage() {
 
   const handleAddMaterial = (rawMaterialId: string) => {
     setSelectedMaterials(prev => {
-      const existing = prev.find(m => m.rawMaterialId === rawMaterialId);
+      const existing = prev.find(m => m.rawmaterialid === rawMaterialId);
       if (existing) {
-        return prev.map(m => m.rawMaterialId === rawMaterialId ? { ...m, quantity: m.quantity + 1 } : m);
+        return prev.map(m => m.rawmaterialid === rawMaterialId ? { ...m, quantity: m.quantity + 1 } : m);
       } else {
-        return [...prev, { rawMaterialId, quantity: 1 }];
+        return [...prev, { rawmaterialid: rawMaterialId, quantity: 1 }];
       }
     });
   };
 
   const handleUpdateMaterialQuantity = (rawMaterialId: string, quantity: number) => {
     setSelectedMaterials(prev =>
-      prev.map(m => m.rawMaterialId === rawMaterialId ? { ...m, quantity: quantity } : m)
+      prev.map(m => m.rawmaterialid === rawMaterialId ? { ...m, quantity: quantity } : m)
     );
   };
 
   const handleRemoveMaterial = (rawMaterialId: string) => {
-    setSelectedMaterials(prev => prev.filter(m => m.rawMaterialId !== rawMaterialId));
+    setSelectedMaterials(prev => prev.filter(m => m.rawmaterialid !== rawMaterialId));
   };
 
   const handleEditQuotation = (quotation: PurchaseQuotation) => {
     setEditingQuotationId(quotation.id);
-    setSelectedSupplierId(quotation.supplierId);
+    setSelectedSupplierId(quotation.supplierid);
     setQuotedPrice(quotation.quotedPrice.toString());
     setValidityDate(quotation.validityDate.split('T')[0]); // Format date for input
     setSelectedMaterials(quotation.materials || []);
@@ -316,16 +316,16 @@ export default function PurchaseQuotationPage() {
           ) : (
             <ul className="space-y-2">
               {selectedMaterials.map((material) => (
-                <li key={material.rawMaterialId} className="flex items-center space-x-2">
-                  <span>{getRawMaterialName(material.rawMaterialId)}</span>
+                <li key={material.rawmaterialid} className="flex items-center space-x-2">
+                  <span>{getRawMaterialName(material.rawmaterialid)}</span>
                   <Input
                     type="number"
                     min="1"
                     value={material.quantity}
-                    onChange={(e) => handleUpdateMaterialQuantity(material.rawMaterialId, parseInt(e.target.value, 10))}
+                    onChange={(e) => handleUpdateMaterialQuantity(material.rawmaterialid, parseInt(e.target.value, 10))}
                     className="w-20"
                   />
-                  <Button variant="destructive" size="sm" onClick={() => handleRemoveMaterial(material.rawMaterialId)}>
+                  <Button variant="destructive" size="sm" onClick={() => handleRemoveMaterial(material.rawmaterialid)}>
                     Remove
                   </Button>
                 </li>
@@ -361,14 +361,14 @@ export default function PurchaseQuotationPage() {
             <tbody>
               {purchaseQuotations.map((quotation) => (
                 <tr key={quotation.id} className="hover:bg-gray-50">
-                  <td className="py-2 px-4 border-b">{getSupplierName(quotation.supplierId || '')}</td>
-                  <td className="py-2 px-4 border-b">${quotation.quotedPrice.toFixed(2)}</td>
+                  <td className="py-2 px-4 border-b">{getSupplierName(quotation.supplierid || '')}</td>
+                  <td className="py-2 px-4 border-b">₱{quotation.quotedPrice.toFixed(2)}</td>
                   <td className="py-2 px-4 border-b">{new Date(quotation.validityDate).toLocaleDateString()}</td>
                   <td className="py-2 px-4 border-b">
                     <ul className="list-disc list-inside">
                       {quotation.materials?.map(material => (
-                        <li key={material.rawMaterialId}>
-                          {getRawMaterialName(material.rawMaterialId)} x {material.quantity}
+                        <li key={material.rawmaterialid}>
+                          {getRawMaterialName(material.rawmaterialid)} x {material.quantity}
                         </li>
                       ))}
                     </ul>
