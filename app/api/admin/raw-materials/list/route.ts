@@ -27,7 +27,7 @@ export async function GET(req: Request) {
       },
     });
 
-    const authClient = createRouteHandlerClient({ cookies });
+    const authClient = createRouteHandlerClient({ cookies: () => cookies() });
     const { data: { session }, error: sessionError } = await authClient.auth.getSession();
 
     if (sessionError) {
@@ -130,6 +130,9 @@ export async function GET(req: Request) {
       } else if (sortBy === "unitOfMeasure") {
         valA = a.unitOfMeasure;
         valB = b.unitOfMeasure;
+      } else if (sortBy === "price") { // Added from remote
+        valA = (a as any).price; // Cast to any to access price from remote, will be refined if RawMaterial has price
+        valB = (b as any).price;
       }
 
       if (valA === null && valB === null) return 0;

@@ -1,6 +1,6 @@
 import { User as SupabaseUser } from '@supabase/supabase-js';
 
-export type UserRole = "admin" | "supplier_management_manager" | "customer" | "raw_material_manager" | "purchase_quotation_manager" | "purchasing_manager" | "purchase_manager";
+export type UserRole = "admin" | "supplier_management_manager" | "customer" | "raw_material_manager" | "purchase_quotation_manager" | "purchasing_manager" | "purchase_order_manager";
 
 // Extend Supabase's User interface
 export type UserProfile = SupabaseUser & {

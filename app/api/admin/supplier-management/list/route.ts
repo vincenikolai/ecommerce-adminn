@@ -7,9 +7,6 @@ import { SupplierManagementItem } from '@/types/supplier-management'; // Import 
 
 const ADMIN_EMAIL = "eastlachemicals@gmail.com";
 const SUPPLIER_MANAGEMENT_MANAGER_ROLE: UserRole = "supplier_management_manager"; // Renamed role constant
-const RAW_MATERIAL_MANAGER_ROLE: UserRole = "raw_material_manager"; // Define the Raw Material Manager Role
-const PURCHASE_QUOTATION_MANAGER_ROLE: UserRole = "purchase_quotation_manager"; // Define the Purchase Quotation Manager Role
-const PURCHASING_MANAGER_ROLE: UserRole = "purchasing_manager";
 
 export async function GET(req: Request) {
   let supabaseUrl = '';
@@ -29,8 +26,7 @@ export async function GET(req: Request) {
       },
     });
 
-    // Restore cookie-based session retrieval
-    const authClient = createRouteHandlerClient({ cookies });
+    const authClient = createRouteHandlerClient({ cookies: () => cookies() });
     const { data: { session }, error: sessionError } = await authClient.auth.getSession();
     console.log("API Route - Session:", session);
     if (sessionError) {
@@ -55,7 +51,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: profileError.message }, { status: 500 });
     }
 
-    if (!profile || ((profile.role !== SUPPLIER_MANAGEMENT_MANAGER_ROLE && profile.role !== RAW_MATERIAL_MANAGER_ROLE && profile.role !== PURCHASE_QUOTATION_MANAGER_ROLE && profile.role !== PURCHASING_MANAGER_ROLE) && session.user?.email !== ADMIN_EMAIL)) {
+    if (!profile || (profile.role !== SUPPLIER_MANAGEMENT_MANAGER_ROLE && session.user?.email !== ADMIN_EMAIL)) {
       console.error("API Route - Access Denied: Insufficient privileges.");
       return NextResponse.json({ error: "Access Denied: Insufficient privileges." }, { status: 403 });
     }

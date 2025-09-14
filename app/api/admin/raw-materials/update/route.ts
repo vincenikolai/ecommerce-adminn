@@ -26,7 +26,7 @@ export async function POST(req: Request) {
       },
     });
 
-    const authClient = createRouteHandlerClient({ cookies });
+    const authClient = createRouteHandlerClient({ cookies: () => cookies() });
     const { data: { session }, error: sessionError } = await authClient.auth.getSession();
 
     if (sessionError) {
@@ -62,7 +62,7 @@ export async function POST(req: Request) {
 
     const { data, error: updateError } = await localAdminSupabase
       .from('RawMaterial')
-      .update({ name, category, unitOfMeasure, stock, defaultSupplierId }) // Let DB handle updatedAt
+      .update({ name, category, unitOfMeasure, stock, defaultSupplierId })
       .eq('id', id)
       .select();
 
