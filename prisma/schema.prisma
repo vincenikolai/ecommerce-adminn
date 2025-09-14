@@ -1,0 +1,75 @@
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Store {
+  id        String @id @default(uuid())
+  name      String
+  userId    String
+  createdAt DateTime @default(now())
+  updated   DateTime @updatedAt
+}
+
+model Supplier {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  price       Float?
+  stock       Int?
+  supplier_shop String?
+  date        String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  rawMaterials RawMaterial[]
+  purchaseQuotations PurchaseQuotation[]
+
+  @@map("supplier_management_items")
+}
+
+model RawMaterial {
+  id              String    @id @default(uuid())
+  name            String
+  category        String
+  unitOfMeasure   String
+  stock           Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  defaultSupplier Supplier? @relation(fields: [defaultSupplierId], references: [id])
+  defaultSupplierId String?   @db.Uuid
+  purchaseQuotationMaterials PurchaseQuotationMaterial[]
+
+  @@map("RawMaterial")
+}
+
+model PurchaseQuotation {
+  id              String   @id @default(uuid())
+  supplier        Supplier? @relation(fields: [supplierId], references: [id])
+  supplierId      String?  @db.Uuid // Assuming supplier_management_items.id is UUID
+  quotedPrice     Float
+  validityDate    DateTime @db.Date
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  materials       PurchaseQuotationMaterial[]
+
+  @@map("PurchaseQuotation")
+}
+
+model PurchaseQuotationMaterial {
+  id                  String   @id @default(uuid())
+  purchaseQuotation   PurchaseQuotation @relation(fields: [purchaseQuotationId], references: [id], onDelete: Cascade)
+  purchaseQuotationId String   @db.Uuid
+  rawMaterial         RawMaterial @relation(fields: [rawMaterialId], references: [id])
+  rawMaterialId       String
+  quantity            Int
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@map("PurchaseQuotationMaterial")
+}
