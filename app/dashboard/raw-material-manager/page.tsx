@@ -57,8 +57,7 @@ export default function RawMaterialManagerPage() {
   }, [supabase.auth]);
 
   const fetchRawMaterials = async () => {
-    // Implement product fetching logic here, similar to fetchUsers
-    // This will call a new API route: /api/admin/supplier-management/list
+    // This will call the API route: /api/admin/raw-materials/list
     setIsLoading(true);
     try {
       const params = new URLSearchParams({

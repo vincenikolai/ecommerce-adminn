@@ -8,5 +8,4 @@ export interface RawMaterial {
   updatedAt: string;
   defaultSupplierId: string | null;
   defaultSupplier?: { name: string, supplier_shop?: string };
-  SupplierManagementItem?: { name: string };
 }

@@ -27,7 +27,7 @@ export async function GET(req: Request) {
       },
     });
 
-    const authClient = createRouteHandlerClient({ cookies: () => cookies() });
+    const authClient = createRouteHandlerClient({ cookies });
     const { data: { session }, error: sessionError } = await authClient.auth.getSession();
 
     if (sessionError) {
@@ -51,7 +51,17 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: profileError.message }, { status: 500 });
     }
 
-    if (!profile || ((profile.role !== RAW_MATERIAL_MANAGER_ROLE && profile.role !== PURCHASE_QUOTATION_MANAGER_ROLE && profile.role !== PURCHASING_MANAGER_ROLE) && session.user?.email !== ADMIN_EMAIL)) {
+    // Detailed logging for debugging access control
+    console.log("Debug - profile.role:", profile?.role);
+    console.log("Debug - RAW_MATERIAL_MANAGER_ROLE:", RAW_MATERIAL_MANAGER_ROLE);
+    console.log("Debug - session.user?.email:", session.user?.email);
+    console.log("Debug - ADMIN_EMAIL:", ADMIN_EMAIL);
+    console.log("Debug - profile.role === RAW_MATERIAL_MANAGER_ROLE:", profile?.role === RAW_MATERIAL_MANAGER_ROLE);
+    console.log("Debug - profile.role === PURCHASE_QUOTATION_MANAGER_ROLE:", profile?.role === PURCHASE_QUOTATION_MANAGER_ROLE);
+    console.log("Debug - profile.role === PURCHASING_MANAGER_ROLE:", profile?.role === PURCHASING_MANAGER_ROLE);
+    console.log("Debug - session.user?.email === ADMIN_EMAIL:", session.user?.email === ADMIN_EMAIL);
+
+    if (!profile || (profile.role !== RAW_MATERIAL_MANAGER_ROLE && profile.role !== PURCHASE_QUOTATION_MANAGER_ROLE && profile.role !== PURCHASING_MANAGER_ROLE && session.user?.email !== ADMIN_EMAIL)) {
       return NextResponse.json({ error: "Access Denied: Insufficient privileges for Raw Material Manager." }, { status: 403 });
     }
 
