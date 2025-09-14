@@ -352,7 +352,7 @@ export default function POManagerPage() {
                 <SelectItem value="none-selected">None</SelectItem>
                 {purchaseQuotations.map((quotation) => (
                   <SelectItem key={quotation.id} value={quotation.id}>
-                    Quotation ID: {quotation.id} (Supplier: {getSupplierName(quotation.supplierid || '')}, Price: ${quotation.quotedPrice.toFixed(2)})
+                    Quotation ID: {quotation.id} (Supplier: {getSupplierName(quotation.supplierid || '')}, Price: ₱{quotation.quotedPrice.toFixed(2)})
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -489,7 +489,7 @@ export default function POManagerPage() {
                       ))}
                     </ul>
                   </td>
-                  <td className="py-2 px-4 border-b">${po.materials?.reduce((sum, m) => sum + (m.quantity * m.unitPrice), 0).toFixed(2)}</td>
+                  <td className="py-2 px-4 border-b">₱{po.materials?.reduce((sum, m) => sum + (m.quantity * m.unitPrice), 0).toFixed(2)}</td>
                   <td className="py-2 px-4 border-b space-x-2">
                     <Button variant="secondary" onClick={() => handleEditPurchaseOrder(po)}>Edit</Button>
                     <Button variant="destructive" onClick={() => handleDeletePurchaseOrder(po.id)}>Delete</Button>
