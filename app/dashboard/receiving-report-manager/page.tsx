@@ -331,7 +331,7 @@ export default function ReceivingReportManagerPage() {
             <tbody>
               {receivingReports.map((report) => (
                 <tr key={report.id} className="hover:bg-gray-50">
-                  <td className="py-2 px-4 border-b">{report.purchaseOrder?.ponumber || 'N/A'}</td>
+                  <td className="py-2 px-4 border-b">{report.purchaseOrder?.poNumber || 'N/A'}</td>
                   <td className="py-2 px-4 border-b">{new Date(report.receiveddate).toLocaleDateString()}</td>
                   <td className="py-2 px-4 border-b">{report.warehouselocation}</td>
                   <td className="py-2 px-4 border-b">

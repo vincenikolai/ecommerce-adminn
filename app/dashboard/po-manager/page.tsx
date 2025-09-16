@@ -256,7 +256,7 @@ export default function POManagerPage() {
 
   const handleEditPurchaseOrder = (po: PurchaseOrder) => {
     setEditingPurchaseOrderId(po.id);
-    setSelectedSupplierid(po.supplierid);
+    setSelectedSupplierid(typeof po.supplierid === 'object' ? po.supplierid.supplier_shop : po.supplierid);
     setSelectedQuotationid(po.purchasequotationid || null);
     setDeliveryDate(po.deliverydate.split('T')[0]);
     setPoNumber(po.poNumber);
@@ -309,8 +309,16 @@ export default function POManagerPage() {
     return rawMaterials.find(rm => rm.id === id)?.name || 'Unknown Raw Material';
   };
 
-  const getSupplierName = (id: string) => {
-    return suppliers.find(s => s.id === id)?.supplier_shop || 'Unknown Supplier';
+  const getSupplierName = (supplierIdOrObject: string | { supplier_shop: string } | null | undefined) => {
+    if (!supplierIdOrObject) return 'Unknown Supplier';
+
+    if (typeof supplierIdOrObject === 'object' && supplierIdOrObject !== null && 'supplier_shop' in supplierIdOrObject) {
+      return supplierIdOrObject.supplier_shop;
+    } else if (typeof supplierIdOrObject === 'string') {
+      // Fallback for cases where only the ID is available or type is not yet updated everywhere
+      return suppliers.find(s => s.id === supplierIdOrObject)?.supplier_shop || 'Unknown Supplier';
+    }
+    return 'Unknown Supplier';
   };
 
   const getQuotationPoNumber = (id: string | null | undefined) => {
@@ -475,7 +483,7 @@ export default function POManagerPage() {
               {purchaseOrders.map((po) => (
                 <tr key={po.id} className="hover:bg-gray-50">
                   <td className="py-2 px-4 border-b">{po.poNumber}</td>
-                  <td className="py-2 px-4 border-b">{getSupplierName(po.supplierid || '')}</td>
+                  <td className="py-2 px-4 border-b">{getSupplierName(po.supplierid)}</td>
                   <td className="py-2 px-4 border-b">
                     {po.deliverydate ? new Date(po.deliverydate).toLocaleDateString() : 'N/A'}
                   </td>
