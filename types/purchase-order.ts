@@ -10,7 +10,7 @@ export interface PurchaseOrderMaterial {
   
   export interface PurchaseOrder {
     id: string;
-    supplierid: string;
+    supplierid: { supplier_shop: string } | string; // Can be string (ID) or object with supplier_shop
     purchasequotationid?: string | null;
     deliverydate: string;
     poNumber: string;

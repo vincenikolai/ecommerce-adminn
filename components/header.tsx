@@ -16,6 +16,7 @@ const SUPPLIER_MANAGEMENT_MANAGER_ROLE: UserRole = "supplier_management_manager"
 const PURCHASE_QUOTATION_MANAGER_ROLE: UserRole = "purchase_quotation_manager";
 const RAW_MATERIAL_MANAGER_ROLE: UserRole = "raw_material_manager";
 const PURCHASING_MANAGER_ROLE: UserRole = "purchasing_manager";
+const WAREHOUSE_STAFF_ROLE: UserRole = "warehouse_staff";
 
 export function Header() {
   const router = useRouter();
@@ -176,6 +177,11 @@ export function Header() {
                   {session && userRole === PURCHASING_MANAGER_ROLE && (
                     <li>
                       <Link href="/dashboard/po-manager" className="block px-4 py-2 hover:bg-gray-100" onClick={() => { setIsMenuOpen(false); closeAdminDropdown(); }}>Purchase Order Manager</Link>
+                    </li>
+                  )}
+                  {session && userRole === WAREHOUSE_STAFF_ROLE && (
+                    <li>
+                      <Link href="/dashboard/receiving-report-manager" className="block px-4 py-2 hover:bg-gray-100" onClick={() => { setIsMenuOpen(false); closeAdminDropdown(); }}>Receiving Report Manager</Link>
                     </li>
                   )}
                 </ul>

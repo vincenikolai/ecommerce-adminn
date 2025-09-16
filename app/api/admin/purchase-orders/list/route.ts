@@ -6,6 +6,7 @@ import { UserProfile, UserRole } from '@/types/user';
 
 const ADMIN_EMAIL = "eastlachemicals@gmail.com";
 const PURCHASING_MANAGER_ROLE: UserRole = "purchasing_manager";
+const WAREHOUSE_STAFF_ROLE: UserRole = "warehouse_staff";
 
 export async function GET(req: Request) {
   let supabaseUrl = '';
@@ -50,7 +51,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: profileError.message }, { status: 500 });
     }
 
-    if (!profile || (profile.role !== PURCHASING_MANAGER_ROLE && session.user?.email !== ADMIN_EMAIL)) {
+    if (!profile || (profile.role !== PURCHASING_MANAGER_ROLE && profile.role !== WAREHOUSE_STAFF_ROLE && session.user?.email !== ADMIN_EMAIL)) {
       console.error("API Route - Access Denied: Insufficient privileges for Purchasing Manager.");
       return NextResponse.json({ error: "Access Denied: Insufficient privileges for Purchasing Manager." }, { status: 403 });
     }
@@ -60,7 +61,7 @@ export async function GET(req: Request) {
       .select(`
         *,
         purchaseordermaterial (*),
-        supplierid (*)
+        supplierid (supplier_shop)
       `);
 
     if (fetchError) {

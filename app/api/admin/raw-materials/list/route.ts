@@ -8,6 +8,7 @@ const ADMIN_EMAIL = "eastlachemicals@gmail.com";
 const RAW_MATERIAL_MANAGER_ROLE: UserRole = "raw_material_manager";
 const PURCHASE_QUOTATION_MANAGER_ROLE: UserRole = "purchase_quotation_manager"; // Define the Purchase Quotation Manager Role
 const PURCHASING_MANAGER_ROLE: UserRole = "purchasing_manager";
+const WAREHOUSE_STAFF_ROLE: UserRole = "warehouse_staff";
 
 export async function GET(req: Request) {
   let supabaseUrl = '';
@@ -59,9 +60,10 @@ export async function GET(req: Request) {
     console.log("Debug - profile.role === RAW_MATERIAL_MANAGER_ROLE:", profile?.role === RAW_MATERIAL_MANAGER_ROLE);
     console.log("Debug - profile.role === PURCHASE_QUOTATION_MANAGER_ROLE:", profile?.role === PURCHASE_QUOTATION_MANAGER_ROLE);
     console.log("Debug - profile.role === PURCHASING_MANAGER_ROLE:", profile?.role === PURCHASING_MANAGER_ROLE);
+    console.log("Debug - profile.role === WAREHOUSE_STAFF_ROLE:", profile?.role === WAREHOUSE_STAFF_ROLE);
     console.log("Debug - session.user?.email === ADMIN_EMAIL:", session.user?.email === ADMIN_EMAIL);
 
-    if (!profile || (profile.role !== RAW_MATERIAL_MANAGER_ROLE && profile.role !== PURCHASE_QUOTATION_MANAGER_ROLE && profile.role !== PURCHASING_MANAGER_ROLE && session.user?.email !== ADMIN_EMAIL)) {
+    if (!profile || (profile.role !== RAW_MATERIAL_MANAGER_ROLE && profile.role !== PURCHASE_QUOTATION_MANAGER_ROLE && profile.role !== PURCHASING_MANAGER_ROLE && profile.role !== WAREHOUSE_STAFF_ROLE && session.user?.email !== ADMIN_EMAIL)) {
       return NextResponse.json({ error: "Access Denied: Insufficient privileges for Raw Material Manager." }, { status: 403 });
     }
 
