@@ -94,14 +94,14 @@ export async function GET(req: Request) {
     console.log("User IDs for profile fetch:", userIds);
 
     // Fetch profiles for these users
-    const { data: profiles, error: profileError } = await localAdminSupabase
+    const { data: profiles, error: profilesError } = await localAdminSupabase
       .from('profiles')
       .select('id, first_name, last_name, ban_duration, role')
       .in('id', userIds);
 
-    if (profileError) {
-      console.error("Error fetching profiles:", profileError);
-      return NextResponse.json({ error: profileError.message }, { status: 500 });
+    if (profilesError) {
+      console.error("Error fetching profiles:", profilesError);
+      return NextResponse.json({ error: profilesError.message }, { status: 500 });
     }
 
     console.log("Fetched profiles:", JSON.stringify(profiles, null, 2));

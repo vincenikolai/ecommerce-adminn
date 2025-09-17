@@ -73,6 +73,7 @@ export async function GET(req: Request) {
       FINANCE_MANAGER_ROLE,
       RAW_MATERIAL_MANAGER_ROLE, // Added raw_material_manager
       PURCHASING_MANAGER_ROLE, // Add purchasing_manager
+      PURCHASE_QUOTATION_MANAGER_ROLE, // Add Purchase Quotation Manager
     ];
 
     if (!profile || (!allowedRoles.includes(profile.role) && session.user?.email !== ADMIN_EMAIL)) {

@@ -54,14 +54,21 @@ export async function GET(req: Request) {
     }
 
     const purchaseInvoices = await prismadb.purchaseInvoice.findMany({
+      include: {
+        supplier: true,
+        purchaseOrder: true,
+        receivingReport: true,
+      },
       orderBy: {
         createdAt: 'desc',
       },
     });
 
     return NextResponse.json(purchaseInvoices);
-  } catch (error) {
-    console.log('[PURCHASE_INVOICE_GET]', error);
-    return new NextResponse("Internal error", { status: 500 });
+  } catch (error: unknown) {
+    console.error('[PURCHASE_INVOICE_GET]', error);
+    // Provide a more descriptive error message in development or if an instance of Error
+    const errorMessage = error instanceof Error ? error.message : "Internal Server Error";
+    return new NextResponse(errorMessage, { status: 500 });
   }
 }

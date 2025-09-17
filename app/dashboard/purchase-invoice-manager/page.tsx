@@ -14,6 +14,9 @@ import { Loader } from '@/components/ui/loader';
 import { PurchaseInvoice } from '@/types/purchase-invoice';
 import { PurchaseInvoiceForm } from '@/components/forms/purchase-invoice-form';
 import { PurchaseInvoiceList } from '@/components/tables/purchase-invoice-list';
+import { PurchaseOrder } from '@/types/purchase-order';
+import { RawMaterial } from '@/types/raw-material';
+import { ReceivingReport } from '@/types/receiving-report'; // Added import for ReceivingReport
 
 interface PurchaseInvoicePageProps {
   params: { storeId: string };
@@ -29,6 +32,9 @@ const PurchaseInvoicePage: React.FC<PurchaseInvoicePageProps> = () => {
   const [purchaseInvoices, setPurchaseInvoices] = useState<PurchaseInvoice[]>([]);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<PurchaseInvoice | null>(null);
+  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
+  const [rawMaterials, setRawMaterials] = useState<RawMaterial[]>([]);
+  const [receivingReports, setReceivingReports] = useState<ReceivingReport[]>([]); // New state for receiving reports
 
   const fetchPurchaseInvoices = async () => {
     try {
@@ -40,6 +46,45 @@ const PurchaseInvoicePage: React.FC<PurchaseInvoicePageProps> = () => {
       console.error("Error fetching purchase invoices:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPurchaseOrders = async () => {
+    try {
+      const response = await axios.get('/api/admin/purchase-orders/list');
+      const data = response.data.map((po: any) => ({
+        ...po,
+        materials: po.purchaseordermaterial || [], // Map the nested materials
+      }));
+      setPurchaseOrders(data);
+    } catch (error) {
+      toast.error("Failed to fetch purchase orders.");
+      console.error("Error fetching purchase orders:", error);
+    }
+  };
+
+  const fetchRawMaterials = async () => {
+    try {
+      const response = await axios.get('/api/admin/raw-materials/list');
+      setRawMaterials(response.data);
+    } catch (error) {
+      toast.error("Failed to fetch raw materials.");
+      console.error("Error fetching raw materials:", error);
+    }
+  };
+
+  const fetchReceivingReports = async () => {
+    try {
+      const response = await axios.get('/api/admin/receiving-reports/list');
+      const data = response.data.map((report: any) => ({
+        ...report,
+        purchaseOrder: report.purchaseorder || undefined,
+        items: report.receivingreportitem || [],
+      }));
+      setReceivingReports(data);
+    } catch (error) {
+      toast.error("Failed to fetch receiving reports.");
+      console.error("Error fetching receiving reports:", error);
     }
   };
 
@@ -71,6 +116,9 @@ const PurchaseInvoicePage: React.FC<PurchaseInvoicePageProps> = () => {
         router.push('/dashboard');
       } else {
         await fetchPurchaseInvoices();
+        await fetchPurchaseOrders();
+        await fetchRawMaterials();
+        await fetchReceivingReports(); // Call the new fetch function
       }
       setLoading(false);
     };
@@ -107,6 +155,9 @@ const PurchaseInvoicePage: React.FC<PurchaseInvoicePageProps> = () => {
         {isFormOpen ? (
           <PurchaseInvoiceForm 
             initialData={selectedInvoice}
+            purchaseOrders={purchaseOrders} // Pass purchase orders
+            rawMaterials={rawMaterials}   // Pass raw materials
+            receivingReports={receivingReports} // Pass receiving reports
             onClose={() => setIsFormOpen(false)}
             onSuccess={() => {
               setIsFormOpen(false);

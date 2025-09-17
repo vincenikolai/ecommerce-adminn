@@ -82,7 +82,11 @@ export default function ReceivingReportManagerPage() {
         throw new Error(errorData.error || "Failed to fetch purchase orders");
       }
       const data: PurchaseOrder[] = await response.json();
-      setPurchaseOrders(data.filter(po => po.status === "Approved" || po.status === "Pending")); // Only show relevant POs
+      const transformedData = data.map(po => ({
+        ...po,
+        materials: po.purchaseordermaterial || [], // Map the nested materials
+      }));
+      setPurchaseOrders(transformedData.filter(po => po.status === "Approved" || po.status === "Pending")); // Only show relevant POs
     } catch (error: unknown) {
       console.error("Error fetching purchase orders:", error);
       toast.error("Error loading purchase orders: " + (error instanceof Error ? error.message : "An unknown error occurred"));
@@ -113,7 +117,12 @@ export default function ReceivingReportManagerPage() {
         throw new Error(errorData.error || "Failed to fetch receiving reports");
       }
       const data: ReceivingReport[] = await response.json();
-      setReceivingReports(data);
+      const transformedData = data.map(report => ({
+        ...report,
+        purchaseOrder: report.purchaseorder || undefined,
+        items: report.receivingreportitem || [],
+      }));
+      setReceivingReports(transformedData);
     } catch (error: unknown) {
       console.error("Error fetching receiving reports:", error);
       toast.error("Error: " + (error instanceof Error ? error.message : "An unknown error occurred"));
@@ -331,14 +340,14 @@ export default function ReceivingReportManagerPage() {
             <tbody>
               {receivingReports.map((report) => (
                 <tr key={report.id} className="hover:bg-gray-50">
-                  <td className="py-2 px-4 border-b">{report.purchaseOrder?.poNumber || 'N/A'}</td>
+                  <td className="py-2 px-4 border-b">{report.purchaseOrder?.ponumber || 'N/A'}</td>
                   <td className="py-2 px-4 border-b">{new Date(report.receiveddate).toLocaleDateString()}</td>
                   <td className="py-2 px-4 border-b">{report.warehouselocation}</td>
                   <td className="py-2 px-4 border-b">
                     <ul className="list-disc list-inside">
                       {report.items?.map((item, index) => (
                         <li key={index}>
-                          {getRawMaterialName(item.rawmaterialid)}: {item.quantity}
+                          {item.rawMaterial?.name}: {item.quantity}
                         </li>
                       ))}
                     </ul>

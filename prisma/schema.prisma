@@ -21,7 +21,7 @@ model Store {
 }
 
 model Supplier {
-  id          String   @id @default(uuid())
+  id          String   @id @default(uuid()) @db.Uuid
   name        String
   description String?
   price       Float?

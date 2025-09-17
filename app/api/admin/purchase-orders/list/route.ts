@@ -57,9 +57,10 @@ export async function GET(req: Request) {
 
     const allowedRoles = [
       PURCHASING_MANAGER_ROLE,
-      WAREHOUSE_STAFF_ROLE,
+      WAREHOUSE_STAFF_ROLE, // Add warehouse_staff
       FINANCE_MANAGER_ROLE, // Also ensure finance manager can view purchase orders
       RAW_MATERIAL_MANAGER_ROLE, // Add raw_material_manager
+      "purchase_quotation_manager", // Allow Purchase Quotation Manager to view purchase orders
     ];
 
     if (!profile || (!allowedRoles.includes(profile.role) && session.user?.email !== ADMIN_EMAIL)) {

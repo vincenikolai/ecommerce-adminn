@@ -8,6 +8,7 @@ import { ReceivingReport } from '@/types/receiving-report';
 const ADMIN_EMAIL = "eastlachemicals@gmail.com";
 const WAREHOUSE_STAFF_ROLE: UserRole = "warehouse_staff";
 const FINANCE_MANAGER_ROLE: UserRole = "finance_manager";
+const PURCHASING_MANAGER_ROLE: UserRole = "purchasing_manager";
 
 export async function GET(req: Request) {
   let supabaseUrl = '';
@@ -50,7 +51,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: profileError.message }, { status: 500 });
     }
 
-    if (!profile || (profile.role !== WAREHOUSE_STAFF_ROLE && profile.role !== FINANCE_MANAGER_ROLE && session.user?.email !== ADMIN_EMAIL)) {
+    if (!profile || (profile.role !== WAREHOUSE_STAFF_ROLE && session.user?.email !== ADMIN_EMAIL && profile.role !== PURCHASING_MANAGER_ROLE && profile.role !== FINANCE_MANAGER_ROLE)) {
       console.error("API Route - Access Denied: Insufficient privileges for Warehouse Staff.");
       return NextResponse.json({ error: "Access Denied: Insufficient privileges for Warehouse Staff." }, { status: 403 });
     }
@@ -61,27 +62,35 @@ export async function GET(req: Request) {
 
     console.log("API Route - Fetching receiving reports from Supabase...");
 
-    let { data: receivingReports, error: rrError } = await localAdminSupabase
+    const { data: receivingReports, error: rrListError } = await localAdminSupabase
       .from('receivingreport')
       .select(`
-        id,
-        receiveddate,
-        warehouselocation,
-        notes,
-        createdat,
-        updatedat,
-        purchaseorderid,
-        purchaseorder(ponumber, supplierid, deliverydate, purchaseordermaterial(rawmaterialid, quantity)),
-        receivingreportitem(rawmaterialid, quantity, "RawMaterial"(name, unitOfMeasure))
+        *,
+        purchaseorder (
+          id,
+          ponumber,
+          supplierid,
+          deliverydate
+        ),
+        receivingreportitem (
+          id,
+          rawmaterialid,
+          quantity,
+          rawMaterial:RawMaterial(
+            id,
+            name
+          )
+        )
       `);
 
-    if (rrError) {
-      console.error("API Route - Error fetching receiving reports:", rrError);
-      return NextResponse.json({ error: rrError.message }, { status: 500 });
+    if (rrListError) {
+      console.error("API Route - Error fetching receiving reports:", rrListError);
+      return NextResponse.json({ error: rrListError.message }, { status: 500 });
     }
 
+    console.log("API Route - Fetched receiving reports data:", JSON.stringify(receivingReports, null, 2));
     if (!receivingReports) {
-      receivingReports = [];
+      return NextResponse.json([]);
     }
 
     // Apply sorting

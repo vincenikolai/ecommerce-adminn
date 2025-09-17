@@ -9,6 +9,7 @@ const RAW_MATERIAL_MANAGER_ROLE: UserRole = "raw_material_manager";
 const PURCHASE_QUOTATION_MANAGER_ROLE: UserRole = "purchase_quotation_manager"; // Define the Purchase Quotation Manager Role
 const PURCHASING_MANAGER_ROLE: UserRole = "purchasing_manager";
 const WAREHOUSE_STAFF_ROLE: UserRole = "warehouse_staff";
+const FINANCE_MANAGER_ROLE: UserRole = "finance_manager";
 
 export async function GET(req: Request) {
   let supabaseUrl = '';
@@ -62,12 +63,14 @@ export async function GET(req: Request) {
     console.log("Debug - profile.role === PURCHASING_MANAGER_ROLE:", profile?.role === PURCHASING_MANAGER_ROLE);
     console.log("Debug - profile.role === WAREHOUSE_STAFF_ROLE:", profile?.role === WAREHOUSE_STAFF_ROLE);
     console.log("Debug - session.user?.email === ADMIN_EMAIL:", session.user?.email === ADMIN_EMAIL);
+    console.log("Debug - FINANCE_MANAGER_ROLE:", FINANCE_MANAGER_ROLE);
 
     const allowedRoles = [
       RAW_MATERIAL_MANAGER_ROLE,
       PURCHASE_QUOTATION_MANAGER_ROLE,
       PURCHASING_MANAGER_ROLE,
       WAREHOUSE_STAFF_ROLE,
+      FINANCE_MANAGER_ROLE, // Allow Finance Manager to view raw materials
     ];
 
     if (!profile || (!allowedRoles.includes(profile.role) && session.user?.email !== ADMIN_EMAIL)) {
