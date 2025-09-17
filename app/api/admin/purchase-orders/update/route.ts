@@ -66,8 +66,8 @@ export async function PATCH(req: Request) {
     const {
       supplierid,
       purchasequotationid,
-      deliveryDate,
-      poNumber,
+      deliverydate,
+      ponumber,
       status,
       materials,
     } = await req.json();
@@ -78,8 +78,8 @@ export async function PATCH(req: Request) {
       .update({
         supplierid,
         purchasequotationid,
-        deliverydate: deliveryDate,
-        ponumber: poNumber,
+        deliverydate: deliverydate,
+        ponumber: ponumber,
         status,
       })
       .eq('id', id)
@@ -108,7 +108,7 @@ export async function PATCH(req: Request) {
           purchaseorderid: id,
           rawmaterialid: material.rawmaterialid,
           quantity: material.quantity,
-          unitprice: material.unitPrice,
+          unitprice: material.unitprice,
         }));
 
         const { error: insertMaterialsError } = await localAdminSupabase

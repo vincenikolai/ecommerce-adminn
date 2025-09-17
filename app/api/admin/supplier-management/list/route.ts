@@ -9,6 +9,8 @@ const ADMIN_EMAIL = "eastlachemicals@gmail.com";
 const SUPPLIER_MANAGEMENT_MANAGER_ROLE: UserRole = "supplier_management_manager"; // Renamed role constant
 const PURCHASE_QUOTATION_MANAGER_ROLE: UserRole = "purchase_quotation_manager"; // New role constant
 const PURCHASING_MANAGER_ROLE: UserRole = "purchasing_manager"; // Added Purchasing Manager Role
+const RAW_MATERIAL_MANAGER_ROLE: UserRole = "raw_material_manager";
+const FINANCE_MANAGER_ROLE: UserRole = "finance_manager";
 
 export async function GET(req: Request) {
   let supabaseUrl = '';
@@ -64,8 +66,16 @@ export async function GET(req: Request) {
     console.log("Debug - profile.role === PURCHASE_QUOTATION_MANAGER_ROLE:", profile?.role === PURCHASE_QUOTATION_MANAGER_ROLE);
     console.log("Debug - profile.role === PURCHASING_MANAGER_ROLE:", profile?.role === PURCHASING_MANAGER_ROLE);
     console.log("Debug - session.user?.email === ADMIN_EMAIL:", session.user?.email === ADMIN_EMAIL);
+    console.log("Debug - FINANCE_MANAGER_ROLE:", FINANCE_MANAGER_ROLE);
 
-    if (!profile || (profile.role !== SUPPLIER_MANAGEMENT_MANAGER_ROLE && profile.role !== PURCHASE_QUOTATION_MANAGER_ROLE && profile.role !== PURCHASING_MANAGER_ROLE && session.user?.email !== ADMIN_EMAIL)) {
+    const allowedRoles = [
+      SUPPLIER_MANAGEMENT_MANAGER_ROLE,
+      FINANCE_MANAGER_ROLE,
+      RAW_MATERIAL_MANAGER_ROLE, // Added raw_material_manager
+      PURCHASING_MANAGER_ROLE, // Add purchasing_manager
+    ];
+
+    if (!profile || (!allowedRoles.includes(profile.role) && session.user?.email !== ADMIN_EMAIL)) {
       console.error("API Route - Access Denied: Insufficient privileges.");
       return NextResponse.json({ error: "Access Denied: Insufficient privileges." }, { status: 403 });
     }

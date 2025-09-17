@@ -3,8 +3,10 @@ import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { adminSupabase } from '@/lib/supabase/admin'
 import { createClient } from '@supabase/supabase-js'
+import { UserRole } from '@/types/user'; // Import UserRole type
 
 const ADMIN_EMAIL = "eastlachemicals@gmail.com";
+const PURCHASING_MANAGER_ROLE: UserRole = "purchasing_manager"; // Define Purchasing Manager Role
 
 export async function GET(req: Request) {
   // CANARY TEST: Very early log and response to check if API route is hit
@@ -46,8 +48,30 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: sessionError.message }, { status: 401 });
     }
 
-    if (!session || session.user?.email !== ADMIN_EMAIL) {
-      return NextResponse.json({ error: "Access Denied: User not allowed." }, { status: 403 });
+    if (!session) {
+      console.error("API Route - Access Denied: No active session.");
+      return NextResponse.json({ error: "Access Denied: No active session." }, { status: 403 });
+    }
+
+    // Fetch the user's role from the profiles table
+    const { data: profile, error: profileError } = await localAdminSupabase
+      .from('profiles')
+      .select('role')
+      .eq('id', session.user.id)
+      .single();
+
+    if (profileError) {
+      console.error("API Route - Error fetching user profile:", profileError);
+      return NextResponse.json({ error: profileError.message }, { status: 500 });
+    }
+
+    const allowedRoles = [
+      PURCHASING_MANAGER_ROLE,
+    ];
+
+    if (!profile || (!allowedRoles.includes(profile.role) && session.user?.email !== ADMIN_EMAIL)) {
+      console.error("API Route - Access Denied: Insufficient privileges for Users list.");
+      return NextResponse.json({ error: "Access Denied: Insufficient privileges for Users list." }, { status: 403 });
     }
 
     console.log("Fetching users from Supabase...");

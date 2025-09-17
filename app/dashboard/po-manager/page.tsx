@@ -129,8 +129,15 @@ export default function POManagerPage() {
         throw new Error(errorData.error || "Failed to fetch purchase orders");
       }
       const data: PurchaseOrder[] = await response.json();
-      console.log("Fetched Purchase Orders:", data);
-      setPurchaseOrders(data);
+
+      // Map purchaseordermaterial to materials for frontend compatibility
+      const transformedData = data.map(po => ({
+        ...po,
+        materials: po.purchaseordermaterial || [], // Use the correct key from Supabase response
+      }));
+
+      console.log("Fetched and Transformed Purchase Orders:", transformedData);
+      setPurchaseOrders(transformedData);
     } catch (error: unknown) {
       console.error("Error fetching purchase orders:", error);
       toast.error("Error: " + (error instanceof Error ? error.message : "An unknown error occurred"));
@@ -146,31 +153,35 @@ export default function POManagerPage() {
       fetchPurchaseQuotations();
       fetchPurchaseOrders();
     }
+    console.log("useEffect - selectedMaterials (after fetch):", selectedMaterials);
   }, [session, userRole]);
 
-  const handleAddMaterial = (rawmaterialid: string, quantity: number = 1, unitPrice: number = 0) => {
+  const handleAddMaterial = (rawmaterialid: string, quantity: number = 1, unitprice: number = 0) => {
     setSelectedMaterials(prev => {
       const existing = prev.find(m => m.rawmaterialid === rawmaterialid);
       if (existing) {
-        return prev.map(m => m.rawmaterialid === rawmaterialid ? { ...m, quantity: m.quantity + quantity, unitPrice: unitPrice > 0 ? unitPrice : m.unitPrice } : m);
+        return prev.map(m => m.rawmaterialid === rawmaterialid ? { ...m, quantity: m.quantity + quantity, unitprice: unitprice > 0 ? unitprice : m.unitprice } : m);
       } else {
         // Generate a temporary ID for new materials not yet in DB
         const tempId = `temp-${Date.now()}-${Math.random()}`;
-        return [...prev, { id: tempId, purchaseorderid: '', rawmaterialid, quantity, unitPrice, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }];
+        return [...prev, { id: tempId, purchaseorderid: '', rawmaterialid, quantity, unitprice, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }];
       }
     });
+    console.log("handleAddMaterial - selectedMaterials:", selectedMaterials);
   };
 
   const handleUpdateMaterialQuantity = (rawmaterialid: string, quantity: number) => {
     setSelectedMaterials(prev =>
       prev.map(m => m.rawmaterialid === rawmaterialid ? { ...m, quantity: quantity } : m)
     );
+    console.log("handleUpdateMaterialQuantity - selectedMaterials:", selectedMaterials);
   };
 
-  const handleUpdateMaterialUnitPrice = (rawmaterialid: string, unitPrice: number) => {
+  const handleUpdateMaterialUnitPrice = (rawmaterialid: string, unitprice: number) => {
     setSelectedMaterials(prev =>
-      prev.map(m => m.rawmaterialid === rawmaterialid ? { ...m, unitPrice: unitPrice } : m)
+      prev.map(m => m.rawmaterialid === rawmaterialid ? { ...m, unitprice: unitprice } : m)
     );
+    console.log("handleUpdateMaterialUnitPrice - selectedMaterials:", selectedMaterials);
   };
 
   const handleRemoveMaterial = (rawmaterialid: string) => {
@@ -196,14 +207,15 @@ export default function POManagerPage() {
       const materialsFromQuotation: PurchaseOrderMaterial[] = quotation.materials?.map(qm => ({
         id: `temp-${Date.now()}-${Math.random()}`,
         purchaseorderid: '', // Use lowercase purchaseorderid
-        rawmaterialid: qm.rawmaterialid, // rawMaterialId from PurchaseQuotationMaterial might still be mixed case
+        rawmaterialid: qm.rawmaterialid || '',
         quantity: qm.quantity,
-        unitPrice: quotation.quotedPrice / qm.quantity, // Simple distribution of price, might need more complex logic
+        unitprice: (quotation.quotedPrice && qm.quantity && qm.quantity > 0) ? (quotation.quotedPrice / qm.quantity) : 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })) || [];
       setSelectedMaterials(materialsFromQuotation);
     }
+    console.log("handleSelectPurchaseQuotation - selectedMaterials:", selectedMaterials);
   };
 
   const handleSubmitPurchaseOrder = async (e: React.FormEvent) => {
@@ -218,13 +230,15 @@ export default function POManagerPage() {
       supplierid: selectedSupplierid,
       purchasequotationid: selectedQuotationid,
       deliverydate: deliveryDate,
-      poNumber: poNumber,
+      ponumber: poNumber,
       status: status,
       // Map to ensure all material properties are lowercase to match backend
       materials: selectedMaterials.map(({ id, createdAt, updatedAt, ...rest }) => ({
         ...rest, // This now correctly includes purchaseorderid and rawmaterialid from the updated type
       })),
     };
+
+    console.log("Payload being sent:", payload);
 
     try {
       const url = editingPurchaseOrderId
@@ -259,9 +273,10 @@ export default function POManagerPage() {
     setSelectedSupplierid(typeof po.supplierid === 'object' ? po.supplierid.supplier_shop : po.supplierid);
     setSelectedQuotationid(po.purchasequotationid || null);
     setDeliveryDate(po.deliverydate.split('T')[0]);
-    setPoNumber(po.poNumber);
+    setPoNumber(po.ponumber);
     setStatus(po.status);
     setSelectedMaterials(po.materials || []);
+    console.log("handleEditPurchaseOrder - selectedMaterials:", selectedMaterials);
   };
 
   const handleCancelEdit = () => {
@@ -438,7 +453,7 @@ export default function POManagerPage() {
                   <Input
                     type="number"
                     step="0.01"
-                    value={material.unitPrice}
+                    value={material.unitprice}
                     onChange={(e) => handleUpdateMaterialUnitPrice(material.rawmaterialid, parseFloat(e.target.value))}
                     className="w-24"
                     placeholder="Unit Price"
@@ -482,7 +497,7 @@ export default function POManagerPage() {
             <tbody>
               {purchaseOrders.map((po) => (
                 <tr key={po.id} className="hover:bg-gray-50">
-                  <td className="py-2 px-4 border-b">{po.poNumber}</td>
+                  <td className="py-2 px-4 border-b">{po.ponumber}</td>
                   <td className="py-2 px-4 border-b">{getSupplierName(po.supplierid)}</td>
                   <td className="py-2 px-4 border-b">
                     {po.deliverydate ? new Date(po.deliverydate).toLocaleDateString() : 'N/A'}
@@ -490,14 +505,15 @@ export default function POManagerPage() {
                   <td className="py-2 px-4 border-b">{po.status}</td>
                   <td className="py-2 px-4 border-b">
                     <ul className="list-disc list-inside">
+                      {console.log(`PO ID: ${po.id}, Materials:`, po.materials)}
                       {po.materials?.map((material, index) => (
                         <li key={index}>
-                          {getRawMaterialName(material.rawmaterialid)} x {material.quantity} @ ${material.unitPrice.toFixed(2)}
+                          {getRawMaterialName(material.rawmaterialid)} x {material.quantity} @ ₱{material.unitprice.toFixed(2)}
                         </li>
                       ))}
                     </ul>
                   </td>
-                  <td className="py-2 px-4 border-b">₱{po.materials?.reduce((sum, m) => sum + (m.quantity * m.unitPrice), 0).toFixed(2)}</td>
+                  <td className="py-2 px-4 border-b">₱{po.materials?.reduce((sum, m) => sum + (m.quantity * m.unitprice), 0).toFixed(2)}</td>
                   <td className="py-2 px-4 border-b space-x-2">
                     <Button variant="secondary" onClick={() => handleEditPurchaseOrder(po)}>Edit</Button>
                     <Button variant="destructive" onClick={() => handleDeletePurchaseOrder(po.id)}>Delete</Button>

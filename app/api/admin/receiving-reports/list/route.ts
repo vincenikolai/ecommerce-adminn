@@ -7,6 +7,7 @@ import { ReceivingReport } from '@/types/receiving-report';
 
 const ADMIN_EMAIL = "eastlachemicals@gmail.com";
 const WAREHOUSE_STAFF_ROLE: UserRole = "warehouse_staff";
+const FINANCE_MANAGER_ROLE: UserRole = "finance_manager";
 
 export async function GET(req: Request) {
   let supabaseUrl = '';
@@ -49,7 +50,7 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: profileError.message }, { status: 500 });
     }
 
-    if (!profile || (profile.role !== WAREHOUSE_STAFF_ROLE && session.user?.email !== ADMIN_EMAIL)) {
+    if (!profile || (profile.role !== WAREHOUSE_STAFF_ROLE && profile.role !== FINANCE_MANAGER_ROLE && session.user?.email !== ADMIN_EMAIL)) {
       console.error("API Route - Access Denied: Insufficient privileges for Warehouse Staff.");
       return NextResponse.json({ error: "Access Denied: Insufficient privileges for Warehouse Staff." }, { status: 403 });
     }

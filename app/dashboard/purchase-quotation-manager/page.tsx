@@ -28,7 +28,7 @@ export default function PurchaseQuotationPage() {
   const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(null);
   const [quotedPrice, setQuotedPrice] = useState<string>("");
   const [validityDate, setValidityDate] = useState<string>("");
-  const [selectedMaterials, setSelectedMaterials] = useState<{ rawmaterialid: string; quantity: number }[]>([]);
+  const [selectedMaterials, setSelectedMaterials] = useState<{ rawMaterialId: string; quantity: number }[]>([]);
   const [editingQuotationId, setEditingQuotationId] = useState<string | null>(null);
 
   const initialFormState = {
@@ -127,23 +127,23 @@ export default function PurchaseQuotationPage() {
 
   const handleAddMaterial = (rawMaterialId: string) => {
     setSelectedMaterials(prev => {
-      const existing = prev.find(m => m.rawmaterialid === rawMaterialId);
+      const existing = prev.find(m => m.rawMaterialId === rawMaterialId);
       if (existing) {
-        return prev.map(m => m.rawmaterialid === rawMaterialId ? { ...m, quantity: m.quantity + 1 } : m);
+        return prev.map(m => m.rawMaterialId === rawMaterialId ? { ...m, quantity: m.quantity + 1 } : m);
       } else {
-        return [...prev, { rawmaterialid: rawMaterialId, quantity: 1 }];
+        return [...prev, { rawMaterialId: rawMaterialId, quantity: 1 }];
       }
     });
   };
 
   const handleUpdateMaterialQuantity = (rawMaterialId: string, quantity: number) => {
     setSelectedMaterials(prev =>
-      prev.map(m => m.rawmaterialid === rawMaterialId ? { ...m, quantity: quantity } : m)
+      prev.map(m => m.rawMaterialId === rawMaterialId ? { ...m, quantity: quantity } : m)
     );
   };
 
   const handleRemoveMaterial = (rawMaterialId: string) => {
-    setSelectedMaterials(prev => prev.filter(m => m.rawmaterialid !== rawMaterialId));
+    setSelectedMaterials(prev => prev.filter(m => m.rawMaterialId !== rawMaterialId));
   };
 
   const handleEditQuotation = (quotation: PurchaseQuotation) => {
@@ -316,16 +316,16 @@ export default function PurchaseQuotationPage() {
           ) : (
             <ul className="space-y-2">
               {selectedMaterials.map((material) => (
-                <li key={material.rawmaterialid} className="flex items-center space-x-2">
-                  <span>{getRawMaterialName(material.rawmaterialid)}</span>
+                <li key={material.rawMaterialId} className="flex items-center space-x-2">
+                  <span>{getRawMaterialName(material.rawMaterialId)}</span>
                   <Input
                     type="number"
                     min="1"
                     value={material.quantity}
-                    onChange={(e) => handleUpdateMaterialQuantity(material.rawmaterialid, parseInt(e.target.value, 10))}
+                    onChange={(e) => handleUpdateMaterialQuantity(material.rawMaterialId, parseInt(e.target.value, 10))}
                     className="w-20"
                   />
-                  <Button variant="destructive" size="sm" onClick={() => handleRemoveMaterial(material.rawmaterialid)}>
+                  <Button variant="destructive" size="sm" onClick={() => handleRemoveMaterial(material.rawMaterialId)}>
                     Remove
                   </Button>
                 </li>
@@ -367,8 +367,8 @@ export default function PurchaseQuotationPage() {
                   <td className="py-2 px-4 border-b">
                     <ul className="list-disc list-inside">
                       {quotation.materials?.map(material => (
-                        <li key={material.rawmaterialid}>
-                          {getRawMaterialName(material.rawmaterialid)} x {material.quantity}
+                        <li key={material.rawMaterialId}>
+                          {getRawMaterialName(material.rawMaterialId)} x {material.quantity}
                         </li>
                       ))}
                     </ul>

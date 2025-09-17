@@ -7,6 +7,7 @@ datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
+  schemas   = ["public", "auth"]
 }
 
 model Store {
@@ -15,6 +16,8 @@ model Store {
   userId    String
   createdAt DateTime @default(now())
   updated   DateTime @updatedAt
+
+  @@schema("public")
 }
 
 model Supplier {
@@ -29,8 +32,11 @@ model Supplier {
   updatedAt   DateTime @updatedAt
   rawMaterials RawMaterial[]
   purchaseQuotations PurchaseQuotation[]
+  purchaseOrders PurchaseOrder[]
+  purchaseInvoices PurchaseInvoice[]
 
   @@map("supplier_management_items")
+  @@schema("public")
 }
 
 model RawMaterial {
@@ -44,8 +50,10 @@ model RawMaterial {
   defaultSupplier Supplier? @relation(fields: [defaultSupplierId], references: [id])
   defaultSupplierId String?   @db.Uuid
   purchaseQuotationMaterials PurchaseQuotationMaterial[]
+  purchaseOrderMaterials   PurchaseOrderMaterial[]
 
   @@map("RawMaterial")
+  @@schema("public")
 }
 
 model PurchaseQuotation {
@@ -59,6 +67,7 @@ model PurchaseQuotation {
   materials       PurchaseQuotationMaterial[]
 
   @@map("PurchaseQuotation")
+  @@schema("public")
 }
 
 model PurchaseQuotationMaterial {
@@ -72,4 +81,103 @@ model PurchaseQuotationMaterial {
   updatedAt           DateTime @updatedAt
 
   @@map("PurchaseQuotationMaterial")
+  @@schema("public")
+}
+
+model PurchaseOrder {
+  id                    String              @id @default(uuid())
+  poReferenceNumber     String              @unique
+  supplier              Supplier            @relation(fields: [supplierId], references: [id])
+  supplierId            String              @db.Uuid
+  orderDate             DateTime            @db.Date
+  deliveryDate          DateTime            @db.Date
+  status                PurchaseOrderStatus @default(Pending)
+  totalAmount           Float
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  materials             PurchaseOrderMaterial[]
+  purchaseInvoice       PurchaseInvoice[]
+  receivingReport       ReceivingReport[]
+
+  @@map("PurchaseOrder")
+  @@schema("public")
+}
+
+model PurchaseOrderMaterial {
+  id                String    @id @default(uuid())
+  purchaseOrder     PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  purchaseOrderId   String    @db.Uuid
+  rawMaterial       RawMaterial @relation(fields: [rawMaterialId], references: [id])
+  rawMaterialId     String
+  quantity          Int
+  unitPrice         Float     @default(0.0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@map("PurchaseOrderMaterial")
+  @@schema("public")
+}
+
+enum PurchaseOrderStatus {
+  Pending
+  Approved
+  Rejected
+  Completed
+  Cancelled
+
+  @@schema("public")
+}
+
+model ReceivingReport {
+  id                       String            @id @default(uuid())
+  receivingReportNumber    String            @unique
+  purchaseOrder            PurchaseOrder     @relation(fields: [purchaseOrderId], references: [id])
+  purchaseOrderId          String            @db.Uuid
+  receivedDate             DateTime          @db.Date
+  status                   ReceivingStatus   @default(Pending)
+  receivedMaterials        Json? // Consider a separate table for detailed line items
+  createdAt                DateTime          @default(now())
+  updatedAt                DateTime          @updatedAt
+  purchaseInvoice          PurchaseInvoice[]
+
+  @@map("ReceivingReport")
+  @@schema("public")
+}
+
+enum ReceivingStatus {
+  Pending
+  Received
+  PartiallyReceived
+  Rejected
+
+  @@schema("public")
+}
+
+model PurchaseInvoice {
+  id                             String           @id @default(uuid())
+  invoiceNumber                  String           @unique
+  supplier                       Supplier         @relation(fields: [supplierId], references: [id])
+  supplierId                     String           @db.Uuid
+  purchaseOrder                  PurchaseOrder    @relation(fields: [poReferenceNumber], references: [id])
+  poReferenceNumber              String           @db.Uuid
+  receivingReport                ReceivingReport  @relation(fields: [receivingReportReferenceNumber], references: [id])
+  receivingReportReferenceNumber String           @db.Uuid
+  invoiceDate                    DateTime         @db.Date
+  dueDate                        DateTime         @db.Date
+  materials                      Json? // Consider a separate table for detailed line items, similar to the SQL above
+  paymentTerms                   String?
+  paymentStatus                  PaymentStatus    @default(Unpaid)
+  createdAt                      DateTime         @default(now())
+  updatedAt                      DateTime         @updatedAt
+
+  @@map("PurchaseInvoice")
+  @@schema("public")
+}
+
+enum PaymentStatus {
+  Unpaid
+  PartiallyPaid
+  Paid
+
+  @@schema("public")
 }

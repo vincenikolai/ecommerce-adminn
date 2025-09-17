@@ -11,6 +11,7 @@ const ADMIN_EMAIL = "eastlachemicals@gmail.com";
 const PURCHASE_QUOTATION_MANAGER_ROLE: UserRole = "purchase_quotation_manager";
 const PURCHASING_MANAGER_ROLE: UserRole = "purchasing_manager";
 const WAREHOUSE_STAFF_ROLE: UserRole = "warehouse_staff";
+const RAW_MATERIAL_MANAGER_ROLE: UserRole = "raw_material_manager"; // Add raw_material_manager role
 
 export async function GET(req: Request) {
   let supabaseUrl = '';
@@ -67,7 +68,14 @@ export async function GET(req: Request) {
     console.log("Debug - profile.role === WAREHOUSE_STAFF_ROLE:", profile?.role === WAREHOUSE_STAFF_ROLE);
     console.log("Debug - session.user?.email === ADMIN_EMAIL:", session.user?.email === ADMIN_EMAIL);
 
-    if (!profile || (profile.role !== PURCHASE_QUOTATION_MANAGER_ROLE && profile.role !== PURCHASING_MANAGER_ROLE && profile.role !== WAREHOUSE_STAFF_ROLE && session.user?.email !== ADMIN_EMAIL)) {
+    const allowedRoles = [
+      PURCHASE_QUOTATION_MANAGER_ROLE,
+      PURCHASING_MANAGER_ROLE,
+      WAREHOUSE_STAFF_ROLE,
+      RAW_MATERIAL_MANAGER_ROLE, // Add raw_material_manager
+    ];
+
+    if (!profile || (!allowedRoles.includes(profile.role) && session.user?.email !== ADMIN_EMAIL)) {
       console.error("API Route - Access Denied: Insufficient privileges for Purchase Quotation Manager.");
       return NextResponse.json({ error: "Access Denied: Insufficient privileges for Purchase Quotation Manager." }, { status: 403 });
     }

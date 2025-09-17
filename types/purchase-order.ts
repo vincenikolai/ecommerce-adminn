@@ -3,7 +3,7 @@ export interface PurchaseOrderMaterial {
     purchaseorderid: string;
     rawmaterialid: string;
     quantity: number;
-    unitPrice: number;
+    unitprice: number;
     createdAt: string;
     updatedAt: string;
   }
@@ -13,7 +13,7 @@ export interface PurchaseOrderMaterial {
     supplierid: { supplier_shop: string } | string; // Can be string (ID) or object with supplier_shop
     purchasequotationid?: string | null;
     deliverydate: string;
-    poNumber: string;
+    ponumber: string;
     status: "Pending" | "Approved" | "Delivered";
     materials?: PurchaseOrderMaterial[]; // Materials associated with this PO
     createdAt: string;

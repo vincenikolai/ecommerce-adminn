@@ -63,7 +63,14 @@ export async function GET(req: Request) {
     console.log("Debug - profile.role === WAREHOUSE_STAFF_ROLE:", profile?.role === WAREHOUSE_STAFF_ROLE);
     console.log("Debug - session.user?.email === ADMIN_EMAIL:", session.user?.email === ADMIN_EMAIL);
 
-    if (!profile || (profile.role !== RAW_MATERIAL_MANAGER_ROLE && profile.role !== PURCHASE_QUOTATION_MANAGER_ROLE && profile.role !== PURCHASING_MANAGER_ROLE && profile.role !== WAREHOUSE_STAFF_ROLE && session.user?.email !== ADMIN_EMAIL)) {
+    const allowedRoles = [
+      RAW_MATERIAL_MANAGER_ROLE,
+      PURCHASE_QUOTATION_MANAGER_ROLE,
+      PURCHASING_MANAGER_ROLE,
+      WAREHOUSE_STAFF_ROLE,
+    ];
+
+    if (!profile || (!allowedRoles.includes(profile.role) && session.user?.email !== ADMIN_EMAIL)) {
       return NextResponse.json({ error: "Access Denied: Insufficient privileges for Raw Material Manager." }, { status: 403 });
     }
 

@@ -59,13 +59,13 @@ export async function POST(req: Request) {
     const {
       supplierid,
       purchasequotationid,
-      deliveryDate,
-      poNumber,
+      deliverydate,
+      ponumber,
       status = 'Pending',
       materials,
     } = await req.json();
 
-    if (!supplierid || !deliveryDate || !poNumber || !materials || materials.length === 0) {
+    if (!supplierid || !deliverydate || !ponumber || !materials || materials.length === 0) {
       return NextResponse.json({ error: "Missing required fields or materials for Purchase Order." }, { status: 400 });
     }
 
@@ -74,8 +74,8 @@ export async function POST(req: Request) {
       .insert({
         supplierid,
         purchasequotationid,
-        deliverydate: deliveryDate,
-        ponumber: poNumber,
+        deliverydate: deliverydate,
+        ponumber: ponumber,
         status,
       })
       .select()
@@ -92,7 +92,7 @@ export async function POST(req: Request) {
         purchaseorderid: newPurchaseOrder.id,
         rawmaterialid: material.rawmaterialid,
         quantity: material.quantity,
-        unitprice: material.unitPrice,
+        unitprice: material.unitprice,
       }));
 
       const { error: materialError } = await localAdminSupabase

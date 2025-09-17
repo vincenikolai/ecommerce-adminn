@@ -1,7 +1,7 @@
 export interface PurchaseQuotationMaterial {
   id: string;
   purchasequotationid: string;
-  rawmaterialid: string;
+  rawMaterialId: string; // Changed to camelCase
   quantity: number;
   createdAt: string;
   updatedAt: string;

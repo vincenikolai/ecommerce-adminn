@@ -1,15 +1,24 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
 import prismadb from "@/lib/prismadb";
+import { cookies } from 'next/headers';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 
 export async function GET(req: Request) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const authClient = createRouteHandlerClient({ cookies });
+    const { data: { session }, error: sessionError } = await authClient.auth.getSession();
+
+    if (sessionError) {
+      console.error("API Route - Session error:", sessionError);
+      return NextResponse.json({ error: sessionError.message }, { status: 401 });
+    }
+
+    if (!session || !session.user?.id) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
+
     const stores = await prismadb.store.findMany({
-      where: { userId },
+      where: { userId: session.user.id },
     });
     return NextResponse.json(stores);
   } catch (error) {
@@ -20,13 +29,20 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const { userId } = await auth();
-    const body = await req.json();
-    const { name } = body;
+    const authClient = createRouteHandlerClient({ cookies });
+    const { data: { session }, error: sessionError } = await authClient.auth.getSession();
 
-    if (!userId) {
+    if (sessionError) {
+      console.error("API Route - Session error:", sessionError);
+      return NextResponse.json({ error: sessionError.message }, { status: 401 });
+    }
+
+    if (!session || !session.user?.id) {
       return new NextResponse("Unauthorized", { status: 401 });
     }
+
+    const body = await req.json();
+    const { name } = body;
 
     if (!name) {
       return new NextResponse("Name is required", { status: 400 });
@@ -35,7 +51,7 @@ export async function POST(req: Request) {
     const store = await prismadb.store.create({
       data: {
         name,
-        userId,
+        userId: session.user.id,
       },
     });
 

@@ -17,6 +17,7 @@ const PURCHASE_QUOTATION_MANAGER_ROLE: UserRole = "purchase_quotation_manager";
 const RAW_MATERIAL_MANAGER_ROLE: UserRole = "raw_material_manager";
 const PURCHASING_MANAGER_ROLE: UserRole = "purchasing_manager";
 const WAREHOUSE_STAFF_ROLE: UserRole = "warehouse_staff";
+const FINANCE_MANAGER_ROLE: UserRole = "finance_manager";
 
 export function Header() {
   const router = useRouter();
@@ -147,41 +148,72 @@ export function Header() {
           <li>
             <Link href="/order-status" onClick={() => { setIsMenuOpen(false); closeAdminDropdown(); }}>Order status</Link>
           </li>
-          {(session && userRole === "admin") || (session && userRole === SUPPLIER_MANAGEMENT_MANAGER_ROLE) || (session && userRole === PURCHASE_QUOTATION_MANAGER_ROLE) || (session && userRole === RAW_MATERIAL_MANAGER_ROLE) || (session && userRole === PURCHASING_MANAGER_ROLE) ? (
+          {(session && userRole === "admin") || 
+            (session && userRole === SUPPLIER_MANAGEMENT_MANAGER_ROLE) ||
+            (session && userRole === RAW_MATERIAL_MANAGER_ROLE) ||
+            (session && userRole === PURCHASE_QUOTATION_MANAGER_ROLE) ||
+            (session && userRole === PURCHASING_MANAGER_ROLE) ||
+            (session && userRole === WAREHOUSE_STAFF_ROLE) ||
+            (session && userRole === FINANCE_MANAGER_ROLE) ? (
             <li className="relative">
-              <Button variant="ghost" onClick={toggleAdminDropdown} className="focus:outline-none">
-                Dashboard
+              <Button
+                onClick={toggleAdminDropdown}
+                className="flex items-center space-x-1 focus:outline-none"
+              >
+                <span>Dashboard</span>
+                <svg
+                  className={`w-3 h-3 transition-transform duration-200 ${showAdminDropdown ? 'rotate-180' : 'rotate-0'}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                </svg>
               </Button>
               {showAdminDropdown && (
-                <ul className="absolute bg-white shadow-lg rounded-md mt-2 py-1 w-48 z-30">
-                  {session && userRole === "admin" && (
+                <ul
+                  className="absolute left-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg py-1 z-30"
+                  onMouseLeave={closeAdminDropdown} // Close if mouse leaves dropdown
+                >
+                  {userRole === "admin" && (
+                    <>
+                      <li>
+                        <Link href="/dashboard/users" className="block px-4 py-2 text-gray-800 hover:bg-gray-100" onClick={() => { setIsMenuOpen(false); closeAdminDropdown(); }}>User Management</Link>
+                      </li>
+                      <li>
+                        <Link href="/dashboard/products" className="block px-4 py-2 text-gray-800 hover:bg-gray-100" onClick={() => { setIsMenuOpen(false); closeAdminDropdown(); }}>Product Management</Link>
+                      </li>
+                    </>
+                  )}
+                  {userRole === SUPPLIER_MANAGEMENT_MANAGER_ROLE && (
                     <li>
-                      <Link href="/dashboard/users" className="block px-4 py-2 hover:bg-gray-100" onClick={() => { setIsMenuOpen(false); closeAdminDropdown(); }}>User Dashboard</Link>
+                      <Link href="/dashboard/supplier-management" className="block px-4 py-2 text-gray-800 hover:bg-gray-100" onClick={() => { setIsMenuOpen(false); closeAdminDropdown(); }}>Supplier Management</Link>
                     </li>
                   )}
-                  {session && userRole === SUPPLIER_MANAGEMENT_MANAGER_ROLE && (
+                  {userRole === RAW_MATERIAL_MANAGER_ROLE && (
                     <li>
-                      <Link href="/dashboard/supplier-management" className="block px-4 py-2 hover:bg-gray-100" onClick={() => { setIsMenuOpen(false); closeAdminDropdown(); }}>Supplier Management</Link>
+                      <Link href="/dashboard/raw-material-manager" className="block px-4 py-2 text-gray-800 hover:bg-gray-100" onClick={() => { setIsMenuOpen(false); closeAdminDropdown(); }}>Raw Material Management</Link>
                     </li>
                   )}
-                  {session && userRole === PURCHASE_QUOTATION_MANAGER_ROLE && (
+                  {userRole === PURCHASE_QUOTATION_MANAGER_ROLE && (
                     <li>
-                      <Link href="/dashboard/purchase-quotation-manager" className="block px-4 py-2 hover:bg-gray-100" onClick={() => { setIsMenuOpen(false); closeAdminDropdown(); }}>Purchase Quotation Manager</Link>
+                      <Link href="/dashboard/purchase-quotation-manager" className="block px-4 py-2 text-gray-800 hover:bg-gray-100" onClick={() => { setIsMenuOpen(false); closeAdminDropdown(); }}>Purchase Quotation Manager</Link>
                     </li>
                   )}
-                  {session && userRole === RAW_MATERIAL_MANAGER_ROLE && (
+                  {userRole === PURCHASING_MANAGER_ROLE && (
                     <li>
-                      <Link href="/dashboard/raw-material-manager" className="block px-4 py-2 hover:bg-gray-100" onClick={() => { setIsMenuOpen(false); closeAdminDropdown(); }}>Raw Material Manager</Link>
+                      <Link href="/dashboard/po-manager" className="block px-4 py-2 text-gray-800 hover:bg-gray-100" onClick={() => { setIsMenuOpen(false); closeAdminDropdown(); }}>PO Manager</Link>
                     </li>
                   )}
-                  {session && userRole === PURCHASING_MANAGER_ROLE && (
+                  {userRole === WAREHOUSE_STAFF_ROLE && (
                     <li>
-                      <Link href="/dashboard/po-manager" className="block px-4 py-2 hover:bg-gray-100" onClick={() => { setIsMenuOpen(false); closeAdminDropdown(); }}>Purchase Order Manager</Link>
+                      <Link href="/dashboard/receiving-report-manager" className="block px-4 py-2 text-gray-800 hover:bg-gray-100" onClick={() => { setIsMenuOpen(false); closeAdminDropdown(); }}>Receiving Report Manager</Link>
                     </li>
                   )}
-                  {session && userRole === WAREHOUSE_STAFF_ROLE && (
+                  {userRole === FINANCE_MANAGER_ROLE && (
                     <li>
-                      <Link href="/dashboard/receiving-report-manager" className="block px-4 py-2 hover:bg-gray-100" onClick={() => { setIsMenuOpen(false); closeAdminDropdown(); }}>Receiving Report Manager</Link>
+                      <Link href="/dashboard/purchase-invoice-manager" className="block px-4 py-2 text-gray-800 hover:bg-gray-100" onClick={() => { setIsMenuOpen(false); closeAdminDropdown(); }}>Purchase Invoice Manager</Link>
                     </li>
                   )}
                 </ul>

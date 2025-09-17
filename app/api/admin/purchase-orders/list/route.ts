@@ -7,6 +7,8 @@ import { UserProfile, UserRole } from '@/types/user';
 const ADMIN_EMAIL = "eastlachemicals@gmail.com";
 const PURCHASING_MANAGER_ROLE: UserRole = "purchasing_manager";
 const WAREHOUSE_STAFF_ROLE: UserRole = "warehouse_staff";
+const RAW_MATERIAL_MANAGER_ROLE: UserRole = "raw_material_manager"; // Add raw_material_manager role
+const FINANCE_MANAGER_ROLE: UserRole = "finance_manager";
 
 export async function GET(req: Request) {
   let supabaseUrl = '';
@@ -51,10 +53,21 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: profileError.message }, { status: 500 });
     }
 
-    if (!profile || (profile.role !== PURCHASING_MANAGER_ROLE && profile.role !== WAREHOUSE_STAFF_ROLE && session.user?.email !== ADMIN_EMAIL)) {
+    console.log("Debug - session.user?.email === ADMIN_EMAIL:", session.user?.email === ADMIN_EMAIL);
+
+    const allowedRoles = [
+      PURCHASING_MANAGER_ROLE,
+      WAREHOUSE_STAFF_ROLE,
+      FINANCE_MANAGER_ROLE, // Also ensure finance manager can view purchase orders
+      RAW_MATERIAL_MANAGER_ROLE, // Add raw_material_manager
+    ];
+
+    if (!profile || (!allowedRoles.includes(profile.role) && session.user?.email !== ADMIN_EMAIL)) {
       console.error("API Route - Access Denied: Insufficient privileges for Purchasing Manager.");
       return NextResponse.json({ error: "Access Denied: Insufficient privileges for Purchasing Manager." }, { status: 403 });
     }
+
+    const { searchParams } = new URL(req.url);
 
     const { data: purchaseOrders, error: fetchError } = await localAdminSupabase
       .from('purchaseorder')
@@ -68,6 +81,8 @@ export async function GET(req: Request) {
       console.error("API Route - Error fetching purchase orders:", fetchError);
       return NextResponse.json({ error: fetchError.message }, { status: 500 });
     }
+
+    console.log("API Route - Fetched Purchase Orders Data:", JSON.stringify(purchaseOrders, null, 2));
 
     return NextResponse.json(purchaseOrders);
   } catch (error: unknown) {
