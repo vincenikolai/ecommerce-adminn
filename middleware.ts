@@ -18,24 +18,26 @@ export async function middleware(req: NextRequest) {
   let userDetails: UserWithBanStatus | null = session?.user || null;
 
   if (session && session.user && userDetails) {
-    // Fetch the user's profile from the profiles table to get ban_duration
+    // Fetch the user's profile from the profiles table to get ban_duration and role
     const { data: profileData, error: profileError } = await adminSupabase
       .from('profiles')
-      .select('ban_duration')
+      .select('ban_duration, role')
       .eq('id', session.user.id)
       .single();
 
     if (profileError) {
-      console.error("Middleware: Error fetching profile for ban status:", profileError);
+      console.error("Middleware: Error fetching profile for ban status and role:", profileError);
     } else if (profileData) {
       userDetails.ban_duration = profileData.ban_duration;
-      console.log("Middleware: Fetched ban_duration from profiles:", profileData.ban_duration);
+      (userDetails as any).role = profileData.role; // Add role to userDetails
+      console.log("Middleware: Fetched ban_duration and role from profiles:", profileData.ban_duration, profileData.role);
     }
   }
 
   const isBanned = userDetails?.ban_duration === 'blocked'; // Check against ban_duration
   const isSignInPage = req.nextUrl.pathname.startsWith('/sign-in');
   const isDashboardRoute = req.nextUrl.pathname.startsWith('/dashboard');
+  const isPurchaseInvoiceManagerRoute = req.nextUrl.pathname.startsWith('/dashboard/purchase-invoice-manager');
 
   if (isBanned) {
     // If user is banned, and not already on sign-in page with banned error
@@ -63,9 +65,18 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL('/', req.url))
   }
 
+  // Role-based access control for Purchase Invoice Manager
+  if (isPurchaseInvoiceManagerRoute) {
+    const userRole = (userDetails as any)?.role;
+    if (!session || (userRole !== 'finance_manager' && userRole !== 'admin')) {
+      console.log(`Middleware: Unauthorized access attempt to ${req.nextUrl.pathname} by role: ${userRole}`);
+      return NextResponse.redirect(new URL('/', req.url)); // Redirect to home or an unauthorized page
+    }
+  }
+
   return res
 }
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)(.+)']
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)(.+)', '/dashboard/purchase-invoice-manager/:path*']
 }
