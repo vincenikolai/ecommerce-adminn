@@ -75,7 +75,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Supplier management item not found or no changes made." }, { status: 404 });
     }
 
-    return NextResponse.json({ message: "Supplier management item updated successfully", item: data[0] }); // Changed 'product' to 'item'
+    return NextResponse.json({ message: "Supplier management item updated successfully", product: data[0] }); // Changed 'item' back to 'product'
   } catch (error: unknown) {
     console.error("Unexpected error in supplier management item update API:", error);
     return NextResponse.json(

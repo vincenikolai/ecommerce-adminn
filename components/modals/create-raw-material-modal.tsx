@@ -25,7 +25,8 @@ interface CreateRawMaterialModalProps {
 export const CreateRawMaterialModal: React.FC<CreateRawMaterialModalProps> = ({ isOpen, onClose, onRawMaterialCreated }) => {
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
-  const [unitOfMeasure, setUnitOfMeasure] = useState("");
+  const [unitOfMeasure, setUnitOfMeasure] = useState("g"); // Default to grams
+  const [unitValue, setUnitValue] = useState<number>(1); // New state for the numerical value
   const [stock, setStock] = useState<number>(0);
   const [defaultSupplierId, setDefaultSupplierId] = useState<string | null>(null);
   const [suppliers, setSuppliers] = useState<SupplierManagementItem[]>([]);
@@ -54,13 +55,16 @@ export const CreateRawMaterialModal: React.FC<CreateRawMaterialModalProps> = ({ 
     e.preventDefault();
     setIsLoading(true);
 
+    // Combine unitValue and unitOfMeasure for the payload
+    const combinedUnitOfMeasure = `${unitValue}${unitOfMeasure}`;
+
     try {
       const response = await fetch("/api/admin/raw-materials/create", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ name, category, unitOfMeasure, stock, defaultSupplierId }),
+        body: JSON.stringify({ name, category, unitOfMeasure: combinedUnitOfMeasure, stock, defaultSupplierId }),
       });
 
       if (!response.ok) {
@@ -75,7 +79,8 @@ export const CreateRawMaterialModal: React.FC<CreateRawMaterialModalProps> = ({ 
       // Clear form
       setName("");
       setCategory("");
-      setUnitOfMeasure("");
+      setUnitOfMeasure("g"); // Reset to default
+      setUnitValue(1); // Reset to default
       setStock(0);
       setDefaultSupplierId(null);
     } catch (error: any) {
@@ -124,13 +129,26 @@ export const CreateRawMaterialModal: React.FC<CreateRawMaterialModalProps> = ({ 
             <Label htmlFor="unitOfMeasure" className="text-left">
               Unit of Measure
             </Label>
-            <Input
-              id="unitOfMeasure"
-              value={unitOfMeasure}
-              onChange={(e) => setUnitOfMeasure(e.target.value)}
-              required
-              className="col-span-2"
-            />
+            <div className="col-span-2 flex items-center gap-2">
+              <Input
+                id="unitValue"
+                type="number"
+                min="1"
+                value={unitValue}
+                onChange={(e) => setUnitValue(parseInt(e.target.value, 10) || 1)}
+                required
+                className="w-24"
+              />
+              <Select onValueChange={(value) => setUnitOfMeasure(value)} value={unitOfMeasure} required>
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="Select unit" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="g">g</SelectItem>
+                  <SelectItem value="kg">kg</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div className="grid grid-cols-3 items-center gap-4">
             <Label htmlFor="stock" className="text-left">
