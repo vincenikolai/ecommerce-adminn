@@ -84,7 +84,7 @@ export default function ReceivingReportManagerPage() {
       const data: PurchaseOrder[] = await response.json();
       const transformedData = data.map(po => ({
         ...po,
-        materials: po.purchaseordermaterial || [], // Map the nested materials
+        materials: (po as any).purchaseordermaterial || [], // Map the nested materials from API response
       }));
       setPurchaseOrders(transformedData.filter(po => po.status === "Approved" || po.status === "Pending")); // Only show relevant POs
     } catch (error: unknown) {
@@ -119,8 +119,8 @@ export default function ReceivingReportManagerPage() {
       const data: ReceivingReport[] = await response.json();
       const transformedData = data.map(report => ({
         ...report,
-        purchaseOrder: report.purchaseorder || undefined,
-        items: report.receivingreportitem || [],
+        purchaseOrder: report.purchaseOrder || undefined, // Corrected casing
+        items: (report as any).receivingreportitem || [], // Map the nested items from API response
       }));
       setReceivingReports(transformedData);
     } catch (error: unknown) {
@@ -228,7 +228,8 @@ export default function ReceivingReportManagerPage() {
   };
 
   const getRawMaterialName = (id: string) => {
-    return rawMaterials.find(rm => rm.id === id)?.name || 'Unknown Raw Material';
+    const material = rawMaterials.find(rm => rm.id === id);
+    return material ? `${material.name} (${material.unitOfMeasure})` : 'Unknown Raw Material';
   };
 
   if (isLoading) {
@@ -340,6 +341,7 @@ export default function ReceivingReportManagerPage() {
             <tbody>
               {receivingReports.map((report) => (
                 <tr key={report.id} className="hover:bg-gray-50">
+                  
                   <td className="py-2 px-4 border-b">{report.purchaseOrder?.ponumber || 'N/A'}</td>
                   <td className="py-2 px-4 border-b">{new Date(report.receiveddate).toLocaleDateString()}</td>
                   <td className="py-2 px-4 border-b">{report.warehouselocation}</td>

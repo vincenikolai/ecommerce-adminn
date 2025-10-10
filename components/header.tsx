@@ -13,7 +13,7 @@ import { Menu, X } from "lucide-react"; // Import Menu and X icons
 
 const ADMIN_EMAIL = "eastlachemicals@gmail.com";
 const SUPPLIER_MANAGEMENT_MANAGER_ROLE: UserRole = "supplier_management_manager"; // Renamed role constant
-const PURCHASE_QUOTATION_MANAGER_ROLE: UserRole = "purchase_quotation_manager";
+const SALES_QUOTATION_MANAGER_ROLE: UserRole = "sales_quotation_manager"; // New role constant
 const RAW_MATERIAL_MANAGER_ROLE: UserRole = "raw_material_manager";
 const PURCHASING_MANAGER_ROLE: UserRole = "purchasing_manager";
 const WAREHOUSE_STAFF_ROLE: UserRole = "warehouse_staff";
@@ -151,7 +151,7 @@ export function Header() {
           {(session && userRole === "admin") || 
             (session && userRole === SUPPLIER_MANAGEMENT_MANAGER_ROLE) ||
             (session && userRole === RAW_MATERIAL_MANAGER_ROLE) ||
-            (session && userRole === PURCHASE_QUOTATION_MANAGER_ROLE) ||
+            (session && userRole === SALES_QUOTATION_MANAGER_ROLE) || // Updated role check
             (session && userRole === PURCHASING_MANAGER_ROLE) ||
             (session && userRole === WAREHOUSE_STAFF_ROLE) ||
             (session && userRole === FINANCE_MANAGER_ROLE) ? (
@@ -196,9 +196,9 @@ export function Header() {
                       <Link href="/dashboard/raw-material-manager" className="block px-4 py-2 text-gray-800 hover:bg-gray-100" onClick={() => { setIsMenuOpen(false); closeAdminDropdown(); }}>Raw Material Management</Link>
                     </li>
                   )}
-                  {userRole === PURCHASE_QUOTATION_MANAGER_ROLE && (
+                  {userRole === SALES_QUOTATION_MANAGER_ROLE && (
                     <li>
-                      <Link href="/dashboard/purchase-quotation-manager" className="block px-4 py-2 text-gray-800 hover:bg-gray-100" onClick={() => { setIsMenuOpen(false); closeAdminDropdown(); }}>Purchase Quotation Manager</Link>
+                      <Link href="/dashboard/purchase-quotation-manager" className="block px-4 py-2 text-gray-800 hover:bg-gray-100" onClick={() => { setIsMenuOpen(false); closeAdminDropdown(); }}>Sales Quotation Manager</Link>
                     </li>
                   )}
                   {userRole === PURCHASING_MANAGER_ROLE && (

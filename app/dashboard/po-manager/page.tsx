@@ -24,7 +24,7 @@ export default function POManagerPage() {
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [suppliers, setSuppliers] = useState<SupplierManagementItem[]>([]);
   const [rawMaterials, setRawMaterials] = useState<RawMaterial[]>([]);
-  const [purchaseQuotations, setPurchaseQuotations] = useState<PurchaseQuotation[]>([]);
+  const [salesQuotations, setSalesQuotations] = useState<PurchaseQuotation[]>([]);
 
   // Form states for creating/editing a purchase order
   const [selectedSupplierid, setSelectedSupplierid] = useState<string | null>(null);
@@ -105,18 +105,18 @@ export default function POManagerPage() {
     }
   };
 
-  const fetchPurchaseQuotations = async () => {
+  const fetchSalesQuotations = async () => {
     try {
-      const response = await fetch("/api/admin/purchase-quotations/list");
+      const response = await fetch("/api/admin/purchase-quotations/list"); // API route is now for sales quotations
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to fetch purchase quotations");
+        throw new Error(errorData.error || "Failed to fetch sales quotations");
       }
       const data: PurchaseQuotation[] = await response.json();
-      setPurchaseQuotations(data);
+      setSalesQuotations(data);
     } catch (error: unknown) {
-      console.error("Error fetching purchase quotations:", error);
-      toast.error("Error loading purchase quotations: " + (error instanceof Error ? error.message : "An unknown error occurred"));
+      console.error("Error fetching sales quotations:", error);
+      toast.error("Error loading sales quotations: " + (error instanceof Error ? error.message : "An unknown error occurred"));
     }
   };
 
@@ -133,7 +133,7 @@ export default function POManagerPage() {
       // Map purchaseordermaterial to materials for frontend compatibility
       const transformedData = data.map(po => ({
         ...po,
-        materials: po.purchaseordermaterial || [], // Use the correct key from Supabase response
+        materials: po.materials || [], // Revert to the previous mapping
       }));
 
       console.log("Fetched and Transformed Purchase Orders:", transformedData);
@@ -150,7 +150,7 @@ export default function POManagerPage() {
     if (session && userRole === PURCHASING_MANAGER_ROLE) {
       fetchSuppliers();
       fetchRawMaterials();
-      fetchPurchaseQuotations();
+      fetchSalesQuotations();
       fetchPurchaseOrders();
     }
     console.log("useEffect - selectedMaterials (after fetch):", selectedMaterials);
@@ -188,7 +188,7 @@ export default function POManagerPage() {
     setSelectedMaterials(prev => prev.filter(m => m.rawmaterialid !== rawmaterialid));
   };
 
-  const handleSelectPurchaseQuotation = (quotationId: string) => {
+  const handleSelectSalesQuotation = (quotationId: string) => {
     if (quotationId === "none-selected") {
       setSelectedQuotationid(null);
       // Clear materials or revert to default if needed
@@ -196,26 +196,26 @@ export default function POManagerPage() {
       return;
     }
 
-    const quotation = purchaseQuotations.find(q => q.id === quotationId);
-    if (quotation) {
-      setSelectedQuotationid(quotation.id);
-      setSelectedSupplierid(quotation.supplierid); // Use lowercase supplierid
+    const salesQuotation = salesQuotations.find(q => q.id === quotationId);
+    if (salesQuotation) {
+      setSelectedQuotationid(salesQuotation.id);
+      setSelectedSupplierid(salesQuotation.supplierid); // Use lowercase supplierid
       setDeliveryDate(""); // Clear delivery date for new PO
       setPoNumber("");     // Clear PO number for new PO
       setStatus("Pending"); // Default status
       // Populate materials from quotation, setting unitPrice to quotedPrice if available
-      const materialsFromQuotation: PurchaseOrderMaterial[] = quotation.materials?.map(qm => ({
+      const materialsFromQuotation: PurchaseOrderMaterial[] = salesQuotation.materials?.map(qm => ({
         id: `temp-${Date.now()}-${Math.random()}`,
         purchaseorderid: '', // Use lowercase purchaseorderid
-        rawmaterialid: qm.rawmaterialid || '',
+        rawmaterialid: qm.rawMaterialId || '',
         quantity: qm.quantity,
-        unitprice: (quotation.quotedPrice && qm.quantity && qm.quantity > 0) ? (quotation.quotedPrice / qm.quantity) : 0,
+        unitprice: (salesQuotation.quotedPrice && qm.quantity && qm.quantity > 0) ? (salesQuotation.quotedPrice / qm.quantity) : 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       })) || [];
       setSelectedMaterials(materialsFromQuotation);
     }
-    console.log("handleSelectPurchaseQuotation - selectedMaterials:", selectedMaterials);
+    console.log("handleSelectSalesQuotation - selectedMaterials:", selectedMaterials);
   };
 
   const handleSubmitPurchaseOrder = async (e: React.FormEvent) => {
@@ -336,10 +336,10 @@ export default function POManagerPage() {
     return 'Unknown Supplier';
   };
 
-  const getQuotationPoNumber = (id: string | null | undefined) => {
+  const getSalesQuotationNumber = (id: string | null | undefined) => {
     if (!id) return 'N/A';
-    // Assuming quotation ID acts as its identifier for display
-    return purchaseQuotations.find(pq => pq.id === id)?.id || 'N/A';
+    // Assuming salesQuotation ID acts as its identifier for display
+    return salesQuotations.find(pq => pq.id === id)?.id || 'N/A';
   };
 
   return (
@@ -366,16 +366,16 @@ export default function POManagerPage() {
             </Select>
           </div>
           <div>
-            <Label htmlFor="purchaseQuotation">Link to Purchase Quotation (Optional)</Label>
-            <Select onValueChange={handleSelectPurchaseQuotation} value={selectedQuotationid || "none-selected"}>
+            <Label htmlFor="salesQuotation">Link to Sales Quotation (Optional)</Label>
+            <Select onValueChange={handleSelectSalesQuotation} value={selectedQuotationid || "none-selected"}>
               <SelectTrigger>
-                <SelectValue placeholder="Select a purchase quotation" />
+                <SelectValue placeholder="Select a sales quotation" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="none-selected">None</SelectItem>
-                {purchaseQuotations.map((quotation) => (
-                  <SelectItem key={quotation.id} value={quotation.id}>
-                    Quotation ID: {quotation.id} (Supplier: {getSupplierName(quotation.supplierid || '')}, Price: ₱{quotation.quotedPrice.toFixed(2)})
+                {salesQuotations.map((salesQuotation) => (
+                  <SelectItem key={salesQuotation.id} value={salesQuotation.id}>
+                    Quotation ID: {salesQuotation.id} (Supplier: {getSupplierName(salesQuotation.supplierid || '')}, Price: ₱{salesQuotation.quotedPrice.toFixed(2)})
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -505,7 +505,6 @@ export default function POManagerPage() {
                   <td className="py-2 px-4 border-b">{po.status}</td>
                   <td className="py-2 px-4 border-b">
                     <ul className="list-disc list-inside">
-                      {console.log(`PO ID: ${po.id}, Materials:`, po.materials)}
                       {po.materials?.map((material, index) => (
                         <li key={index}>
                           {getRawMaterialName(material.rawmaterialid)} x {material.quantity} @ ₱{material.unitprice.toFixed(2)}

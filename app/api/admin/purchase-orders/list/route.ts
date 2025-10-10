@@ -8,6 +8,7 @@ const ADMIN_EMAIL = "eastlachemicals@gmail.com";
 const PURCHASING_MANAGER_ROLE: UserRole = "purchasing_manager";
 const WAREHOUSE_STAFF_ROLE: UserRole = "warehouse_staff";
 const RAW_MATERIAL_MANAGER_ROLE: UserRole = "raw_material_manager"; // Add raw_material_manager role
+const SALES_QUOTATION_MANAGER_ROLE: UserRole = "sales_quotation_manager"; // Add Sales Quotation Manager role
 const FINANCE_MANAGER_ROLE: UserRole = "finance_manager";
 
 export async function GET(req: Request) {
@@ -60,7 +61,8 @@ export async function GET(req: Request) {
       WAREHOUSE_STAFF_ROLE, // Add warehouse_staff
       FINANCE_MANAGER_ROLE, // Also ensure finance manager can view purchase orders
       RAW_MATERIAL_MANAGER_ROLE, // Add raw_material_manager
-      "purchase_quotation_manager", // Allow Purchase Quotation Manager to view purchase orders
+      "purchase_quotation_manager", // Keep this for now, it's the old name, but the API endpoint now serves sales quotations
+      SALES_QUOTATION_MANAGER_ROLE, // Allow Sales Quotation Manager to view purchase orders
     ];
 
     if (!profile || (!allowedRoles.includes(profile.role) && session.user?.email !== ADMIN_EMAIL)) {
@@ -74,7 +76,7 @@ export async function GET(req: Request) {
       .from('purchaseorder')
       .select(`
         *,
-        purchaseordermaterial (*),
+        purchaseordermaterial (id, purchaseorderid, rawmaterialid, quantity, unitprice, createdat, updatedat),
         supplierid (supplier_shop)
       `);
 

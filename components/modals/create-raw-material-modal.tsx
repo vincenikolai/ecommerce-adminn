@@ -25,6 +25,7 @@ interface CreateRawMaterialModalProps {
 export const CreateRawMaterialModal: React.FC<CreateRawMaterialModalProps> = ({ isOpen, onClose, onRawMaterialCreated }) => {
   const [name, setName] = useState("");
   const [category, setCategory] = useState("");
+  const [type, setType] = useState("Raw Material"); // New state for classification
   const [unitOfMeasure, setUnitOfMeasure] = useState("g"); // Default to grams
   const [unitValue, setUnitValue] = useState<number>(1); // New state for the numerical value
   const [stock, setStock] = useState<number>(0);
@@ -64,7 +65,7 @@ export const CreateRawMaterialModal: React.FC<CreateRawMaterialModalProps> = ({ 
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ name, category, unitOfMeasure: combinedUnitOfMeasure, stock, defaultSupplierId }),
+        body: JSON.stringify({ name, category, type, unitOfMeasure: combinedUnitOfMeasure, stock, defaultSupplierId }),
       });
 
       if (!response.ok) {
@@ -79,6 +80,7 @@ export const CreateRawMaterialModal: React.FC<CreateRawMaterialModalProps> = ({ 
       // Clear form
       setName("");
       setCategory("");
+      setType("Raw Material"); // Reset to default
       setUnitOfMeasure("g"); // Reset to default
       setUnitValue(1); // Reset to default
       setStock(0);
@@ -124,6 +126,20 @@ export const CreateRawMaterialModal: React.FC<CreateRawMaterialModalProps> = ({ 
               required
               className="col-span-2"
             />
+          </div>
+          <div className="grid grid-cols-3 items-center gap-4">
+            <Label htmlFor="materialType" className="text-left">
+              Material Type
+            </Label>
+            <Select onValueChange={(value) => setType(value)} value={type} required>
+              <SelectTrigger className="col-span-2">
+                <SelectValue placeholder="Select type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Finished Product">Finished Product</SelectItem>
+                <SelectItem value="Raw Material">Raw Material</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="grid grid-cols-3 items-center gap-4">
             <Label htmlFor="unitOfMeasure" className="text-left">

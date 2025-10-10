@@ -7,6 +7,7 @@ import { SupplierManagementItem } from '@/types/supplier-management'; // Import 
 
 const ADMIN_EMAIL = "eastlachemicals@gmail.com";
 const SUPPLIER_MANAGEMENT_MANAGER_ROLE: UserRole = "supplier_management_manager"; // Renamed role constant
+const SALES_QUOTATION_MANAGER_ROLE: UserRole = "sales_quotation_manager"; // Define the Sales Quotation Manager Role
 const PURCHASE_QUOTATION_MANAGER_ROLE: UserRole = "purchase_quotation_manager"; // New role constant
 const PURCHASING_MANAGER_ROLE: UserRole = "purchasing_manager"; // Added Purchasing Manager Role
 const RAW_MATERIAL_MANAGER_ROLE: UserRole = "raw_material_manager";
@@ -58,11 +59,13 @@ export async function GET(req: Request) {
     // Detailed logging for debugging access control
     console.log("Debug - profile.role:", profile?.role);
     console.log("Debug - SUPPLIER_MANAGEMENT_MANAGER_ROLE:", SUPPLIER_MANAGEMENT_MANAGER_ROLE);
+    console.log("Debug - SALES_QUOTATION_MANAGER_ROLE:", SALES_QUOTATION_MANAGER_ROLE); // Add debug log for new role
     console.log("Debug - PURCHASE_QUOTATION_MANAGER_ROLE:", PURCHASE_QUOTATION_MANAGER_ROLE);
     console.log("Debug - PURCHASING_MANAGER_ROLE:", PURCHASING_MANAGER_ROLE);
     console.log("Debug - session.user?.email:", session.user?.email);
     console.log("Debug - ADMIN_EMAIL:", ADMIN_EMAIL);
     console.log("Debug - profile.role === SUPPLIER_MANAGEMENT_MANAGER_ROLE:", profile?.role === SUPPLIER_MANAGEMENT_MANAGER_ROLE);
+    console.log("Debug - profile.role === SALES_QUOTATION_MANAGER_ROLE:", profile?.role === SALES_QUOTATION_MANAGER_ROLE); // Add debug log for new role check
     console.log("Debug - profile.role === PURCHASE_QUOTATION_MANAGER_ROLE:", profile?.role === PURCHASE_QUOTATION_MANAGER_ROLE);
     console.log("Debug - profile.role === PURCHASING_MANAGER_ROLE:", profile?.role === PURCHASING_MANAGER_ROLE);
     console.log("Debug - session.user?.email === ADMIN_EMAIL:", session.user?.email === ADMIN_EMAIL);
@@ -71,9 +74,10 @@ export async function GET(req: Request) {
     const allowedRoles = [
       SUPPLIER_MANAGEMENT_MANAGER_ROLE,
       FINANCE_MANAGER_ROLE,
-      RAW_MATERIAL_MANAGER_ROLE, // Added raw_material_manager
-      PURCHASING_MANAGER_ROLE, // Add purchasing_manager
-      PURCHASE_QUOTATION_MANAGER_ROLE, // Add Purchase Quotation Manager
+      RAW_MATERIAL_MANAGER_ROLE,
+      PURCHASING_MANAGER_ROLE,
+      PURCHASE_QUOTATION_MANAGER_ROLE,
+      SALES_QUOTATION_MANAGER_ROLE, // Allow Sales Quotation Manager to view supplier management items
     ];
 
     if (!profile || (!allowedRoles.includes(profile.role) && session.user?.email !== ADMIN_EMAIL)) {

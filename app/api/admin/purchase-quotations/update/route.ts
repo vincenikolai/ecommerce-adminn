@@ -7,7 +7,7 @@ import { PurchaseQuotation } from '@/types/purchase-quotation';
 import { v4 as uuidv4 } from 'uuid'; // Import uuid
 
 const ADMIN_EMAIL = "eastlachemicals@gmail.com";
-const PURCHASE_QUOTATION_MANAGER_ROLE: UserRole = "purchase_quotation_manager";
+const SALES_QUOTATION_MANAGER_ROLE: UserRole = "sales_quotation_manager"; // Renamed role constant
 
 export async function POST(req: Request) {
   let supabaseUrl = '';
@@ -52,9 +52,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: profileError.message }, { status: 500 });
     }
 
-    if (!profile || (profile.role !== PURCHASE_QUOTATION_MANAGER_ROLE && session.user?.email !== ADMIN_EMAIL)) {
-      console.error("API Route - Access Denied: Insufficient privileges for Purchase Quotation Manager.");
-      return NextResponse.json({ error: "Access Denied: Insufficient privileges for Purchase Quotation Manager." }, { status: 403 });
+    if (!profile || (profile.role !== SALES_QUOTATION_MANAGER_ROLE && session.user?.email !== ADMIN_EMAIL)) {
+      console.error("API Route - Access Denied: Insufficient privileges for Sales Quotation Manager.");
+      return NextResponse.json({ error: "Access Denied: Insufficient privileges for Sales Quotation Manager." }, { status: 403 });
     }
 
     const { id, supplierId, quotedPrice, validityDate, materials } = await req.json() as PurchaseQuotation & { materials: Array<{ rawMaterialId: string; quantity: number }> };
@@ -132,13 +132,13 @@ export async function POST(req: Request) {
 
     if (fetchFullQuotationError) {
         console.error("API Route - Error fetching full updated quotation:", fetchFullQuotationError);
-        return NextResponse.json({ message: "Purchase quotation updated successfully (materials might be incomplete in response)", purchaseQuotation: quotationData[0] });
+        return NextResponse.json({ message: "Sales quotation updated successfully (materials might be incomplete in response)", purchaseQuotation: quotationData[0] });
     }
 
-    return NextResponse.json({ message: "Purchase quotation updated successfully", purchaseQuotation: fullQuotation });
+    return NextResponse.json({ message: "Sales quotation updated successfully", purchaseQuotation: fullQuotation });
 
   } catch (error: unknown) {
-    console.error("API Route - Unexpected error in purchase quotation update API:", error);
+    console.error("API Route - Unexpected error in sales quotation update API:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Internal Server Error" },
       { status: 500 }

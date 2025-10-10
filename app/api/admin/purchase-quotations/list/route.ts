@@ -8,7 +8,7 @@ import { SupplierManagementItem } from '@/types/supplier-management';
 import { RawMaterial } from '@/types/raw-material';
 
 const ADMIN_EMAIL = "eastlachemicals@gmail.com";
-const PURCHASE_QUOTATION_MANAGER_ROLE: UserRole = "purchase_quotation_manager";
+const SALES_QUOTATION_MANAGER_ROLE: UserRole = "sales_quotation_manager"; // Updated role constant
 const PURCHASING_MANAGER_ROLE: UserRole = "purchasing_manager";
 const WAREHOUSE_STAFF_ROLE: UserRole = "warehouse_staff";
 const RAW_MATERIAL_MANAGER_ROLE: UserRole = "raw_material_manager"; // Add raw_material_manager role
@@ -58,18 +58,18 @@ export async function GET(req: Request) {
 
     // Detailed logging for debugging access control
     console.log("Debug - profile.role:", profile?.role);
-    console.log("Debug - PURCHASE_QUOTATION_MANAGER_ROLE:", PURCHASE_QUOTATION_MANAGER_ROLE);
+    console.log("Debug - SALES_QUOTATION_MANAGER_ROLE:", SALES_QUOTATION_MANAGER_ROLE);
     console.log("Debug - PURCHASING_MANAGER_ROLE:", PURCHASING_MANAGER_ROLE);
     console.log("Debug - WAREHOUSE_STAFF_ROLE:", WAREHOUSE_STAFF_ROLE);
     console.log("Debug - session.user?.email:", session.user?.email);
     console.log("Debug - ADMIN_EMAIL:", ADMIN_EMAIL);
-    console.log("Debug - profile.role === PURCHASE_QUOTATION_MANAGER_ROLE:", profile?.role === PURCHASE_QUOTATION_MANAGER_ROLE);
+    console.log("Debug - profile.role === SALES_QUOTATION_MANAGER_ROLE:", profile?.role === SALES_QUOTATION_MANAGER_ROLE);
     console.log("Debug - profile.role === PURCHASING_MANAGER_ROLE:", profile?.role === PURCHASING_MANAGER_ROLE);
     console.log("Debug - profile.role === WAREHOUSE_STAFF_ROLE:", profile?.role === WAREHOUSE_STAFF_ROLE);
     console.log("Debug - session.user?.email === ADMIN_EMAIL:", session.user?.email === ADMIN_EMAIL);
 
     const allowedRoles = [
-      PURCHASE_QUOTATION_MANAGER_ROLE,
+      SALES_QUOTATION_MANAGER_ROLE, // Updated role check
       PURCHASING_MANAGER_ROLE,
       WAREHOUSE_STAFF_ROLE,
       RAW_MATERIAL_MANAGER_ROLE, // Add raw_material_manager
@@ -77,8 +77,8 @@ export async function GET(req: Request) {
     ];
 
     if (!profile || (!allowedRoles.includes(profile.role) && session.user?.email !== ADMIN_EMAIL)) {
-      console.error("API Route - Access Denied: Insufficient privileges for Purchase Quotation Manager.");
-      return NextResponse.json({ error: "Access Denied: Insufficient privileges for Purchase Quotation Manager." }, { status: 403 });
+      console.error("API Route - Access Denied: Insufficient privileges for Sales Quotation Manager.");
+      return NextResponse.json({ error: "Access Denied: Insufficient privileges for Sales Quotation Manager." }, { status: 403 });
     }
 
     const { searchParams } = new URL(req.url);

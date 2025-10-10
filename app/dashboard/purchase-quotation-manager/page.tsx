@@ -12,15 +12,15 @@ import { PurchaseQuotation, PurchaseQuotationMaterial } from '@/types/purchase-q
 import { SupplierManagementItem } from '@/types/supplier-management';
 import { RawMaterial } from '@/types/raw-material';
 
-const PURCHASE_QUOTATION_MANAGER_ROLE: UserRole = "purchase_quotation_manager";
+const SALES_QUOTATION_MANAGER_ROLE: UserRole = "sales_quotation_manager";
 
-export default function PurchaseQuotationPage() {
+export default function SalesQuotationPage() {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [userRole, setUserRole] = useState<UserProfile["role"] | null>(null);
   const supabase = createClientComponentClient();
 
-  const [purchaseQuotations, setPurchaseQuotations] = useState<PurchaseQuotation[]>([]);
+  const [salesQuotations, setSalesQuotations] = useState<PurchaseQuotation[]>([]);
   const [suppliers, setSuppliers] = useState<SupplierManagementItem[]>([]);
   const [rawMaterials, setRawMaterials] = useState<RawMaterial[]>([]);
 
@@ -99,18 +99,18 @@ export default function PurchaseQuotationPage() {
     }
   };
 
-  const fetchPurchaseQuotations = async () => {
+  const fetchSalesQuotations = async () => {
     setIsLoading(true);
     try {
       const response = await fetch("/api/admin/purchase-quotations/list"); // We'll create this API route next
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to fetch purchase quotations");
+        throw new Error(errorData.error || "Failed to fetch sales quotations");
       }
       const data: PurchaseQuotation[] = await response.json();
-      setPurchaseQuotations(data);
+      setSalesQuotations(data);
     } catch (error: unknown) {
-      console.error("Error fetching purchase quotations:", error);
+      console.error("Error fetching sales quotations:", error);
       toast.error("Error: " + (error instanceof Error ? error.message : "An unknown error occurred"));
     } finally {
       setIsLoading(false);
@@ -118,10 +118,10 @@ export default function PurchaseQuotationPage() {
   };
 
   useEffect(() => {
-    if (session && userRole === PURCHASE_QUOTATION_MANAGER_ROLE) {
+    if (session && userRole === SALES_QUOTATION_MANAGER_ROLE) {
       fetchSuppliers();
       fetchRawMaterials();
-      fetchPurchaseQuotations();
+      fetchSalesQuotations();
     }
   }, [session, userRole]);
 
@@ -146,15 +146,15 @@ export default function PurchaseQuotationPage() {
     setSelectedMaterials(prev => prev.filter(m => m.rawMaterialId !== rawMaterialId));
   };
 
-  const handleEditQuotation = (quotation: PurchaseQuotation) => {
-    setEditingQuotationId(quotation.id);
-    setSelectedSupplierId(quotation.supplierid);
-    setQuotedPrice(quotation.quotedPrice.toString());
-    setValidityDate(quotation.validityDate.split('T')[0]); // Format date for input
-    setSelectedMaterials(quotation.materials || []);
+  const handleEditSalesQuotation = (salesQuotation: PurchaseQuotation) => {
+    setEditingQuotationId(salesQuotation.id);
+    setSelectedSupplierId(salesQuotation.supplierid);
+    setQuotedPrice(salesQuotation.quotedPrice.toString());
+    setValidityDate(salesQuotation.validityDate.split('T')[0]); // Format date for input
+    setSelectedMaterials(salesQuotation.materials || []);
   };
 
-  const handleCancelEdit = () => {
+  const handleCancelEditSalesQuotation = () => {
     setEditingQuotationId(null);
     setSelectedSupplierId(initialFormState.selectedSupplierId);
     setQuotedPrice(initialFormState.quotedPrice);
@@ -162,7 +162,7 @@ export default function PurchaseQuotationPage() {
     setSelectedMaterials(initialFormState.selectedMaterials);
   };
 
-  const handleSubmitNewQuotation = async (e: React.FormEvent) => {
+  const handleSubmitNewSalesQuotation = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!selectedSupplierId || quotedPrice === "" || !validityDate || selectedMaterials.length === 0) {
@@ -193,48 +193,48 @@ export default function PurchaseQuotationPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || `Failed to ${editingQuotationId ? "update" : "create"} purchase quotation`);
+        throw new Error(errorData.error || `Failed to ${editingQuotationId ? "update" : "create"} sales quotation`);
       }
 
-      toast.success(`Purchase quotation ${editingQuotationId ? "updated" : "created"}!`);
+      toast.success(`Sales quotation ${editingQuotationId ? "updated" : "created"}!`);
       // Clear form and re-fetch data
-      handleCancelEdit(); // Use the new cancel function to clear the form
-      fetchPurchaseQuotations();
+      handleCancelEditSalesQuotation(); // Use the new cancel function to clear the form
+      fetchSalesQuotations();
     } catch (error: unknown) {
-      console.error(`Error ${editingQuotationId ? "updating" : "creating"} purchase quotation:`, error);
-      toast.error(`Error ${editingQuotationId ? "updating" : "creating"} purchase quotation: ` + (error instanceof Error ? error.message : "An unknown error occurred"));
+      console.error(`Error ${editingQuotationId ? "updating" : "creating"} sales quotation:`, error);
+      toast.error(`Error ${editingQuotationId ? "updating" : "creating"} sales quotation: ` + (error instanceof Error ? error.message : "An unknown error occurred"));
     }
   };
 
-  const handleDeleteQuotation = async (quotationId: string) => {
-    if (!window.confirm("Are you sure you want to delete this purchase quotation?")) {
+  const handleDeleteSalesQuotation = async (salesQuotationId: string) => {
+    if (!window.confirm("Are you sure you want to delete this sales quotation?")) {
       return;
     }
 
     try {
-      const response = await fetch(`/api/admin/purchase-quotations/delete?id=${quotationId}`, {
+      const response = await fetch(`/api/admin/purchase-quotations/delete?id=${salesQuotationId}`, {
         method: "DELETE",
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to delete purchase quotation");
+        throw new Error(errorData.error || "Failed to delete sales quotation");
       }
 
-      toast.success("Purchase quotation deleted!");
-      fetchPurchaseQuotations();
+      toast.success("Sales quotation deleted!");
+      fetchSalesQuotations();
     } catch (error: unknown) {
-      console.error("Error deleting purchase quotation:", error);
-      toast.error("Error deleting purchase quotation: " + (error instanceof Error ? error.message : "An unknown error occurred"));
+      console.error("Error deleting sales quotation:", error);
+      toast.error("Error deleting sales quotation: " + (error instanceof Error ? error.message : "An unknown error occurred"));
     }
   };
 
   if (isLoading) {
-    return <div className="p-6">Loading purchase quotation data...</div>;
+    return <div className="p-6">Loading sales quotation data...</div>;
   }
 
-  if (!session || userRole !== PURCHASE_QUOTATION_MANAGER_ROLE) {
-    return <div className="p-6 text-red-500">Access Denied: You do not have "Purchase Quotation Manager" privileges to view this page.</div>;
+  if (!session || userRole !== SALES_QUOTATION_MANAGER_ROLE) {
+    return <div className="p-6 text-red-500">Access Denied: You do not have "Sales Quotation Manager" privileges to view this page.</div>;
   }
 
   const getRawMaterialName = (id: string) => {
@@ -245,12 +245,17 @@ export default function PurchaseQuotationPage() {
     return suppliers.find(s => s.id === id)?.supplier_shop || 'Unknown Supplier';
   };
 
+  const getSalesQuotationNumber = (id: string | null | undefined) => {
+    if (!id) return 'N/A';
+    return salesQuotations.find(pq => pq.id === id)?.id || 'N/A';
+  };
+
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Purchase Quotation Management</h1>
+      <h1 className="text-2xl font-bold mb-6">Sales Quotation Management</h1>
 
-      <h2 className="text-xl font-semibold mb-4">Create New Purchase Quotation</h2>
-      <form onSubmit={handleSubmitNewQuotation} className="grid gap-4 mb-8 p-4 border rounded-md bg-gray-50">
+      <h2 className="text-xl font-semibold mb-4">Create New Sales Quotation</h2>
+      <form onSubmit={handleSubmitNewSalesQuotation} className="grid gap-4 mb-8 p-4 border rounded-md bg-gray-50">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="supplier">Supplier Name</Label>
@@ -334,18 +339,18 @@ export default function PurchaseQuotationPage() {
           )}
         </div>
         <Button type="submit" disabled={isLoading} className="mt-4">
-          {editingQuotationId ? "Update Purchase Quotation" : "Create Purchase Quotation"}
+          {editingQuotationId ? "Update Sales Quotation" : "Create Sales Quotation"}
         </Button>
         {editingQuotationId && (
-          <Button type="button" variant="outline" onClick={handleCancelEdit} className="mt-2">
+          <Button type="button" variant="outline" onClick={handleCancelEditSalesQuotation} className="mt-2">
             Cancel Edit
           </Button>
         )}
       </form>
 
-      <h2 className="text-xl font-semibold mb-4 mt-8">Existing Purchase Quotations</h2>
-      {purchaseQuotations.length === 0 ? (
-        <p>No purchase quotations found.</p>
+      <h2 className="text-xl font-semibold mb-4 mt-8">Existing Sales Quotations</h2>
+      {salesQuotations.length === 0 ? (
+        <p>No sales quotations found.</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full bg-white border border-gray-200">
@@ -359,14 +364,15 @@ export default function PurchaseQuotationPage() {
               </tr>
             </thead>
             <tbody>
-              {purchaseQuotations.map((quotation) => (
-                <tr key={quotation.id} className="hover:bg-gray-50">
-                  <td className="py-2 px-4 border-b">{getSupplierName(quotation.supplierid || '')}</td>
-                  <td className="py-2 px-4 border-b">₱{quotation.quotedPrice.toFixed(2)}</td>
-                  <td className="py-2 px-4 border-b">{new Date(quotation.validityDate).toLocaleDateString()}</td>
+              {salesQuotations.map((salesQuotation) => (
+                <tr key={salesQuotation.id} className="hover:bg-gray-50">
+                  <td className="py-2 px-4 border-b">{getSupplierName(salesQuotation.supplierid || '')}</td>
+                  <td className="py-2 px-4 border-b">₱{salesQuotation.quotedPrice.toFixed(2)}</td>
+                  <td className="py-2 px-4 border-b">{new Date(salesQuotation.validityDate).toLocaleDateString()}</td>
                   <td className="py-2 px-4 border-b">
                     <ul className="list-disc list-inside">
-                      {quotation.materials?.map(material => (
+                      {console.log(`PO ID: ${salesQuotation.id}, Materials:`, salesQuotation.materials)}
+                      {salesQuotation.materials?.map(material => (
                         <li key={material.rawMaterialId}>
                           {getRawMaterialName(material.rawMaterialId)} x {material.quantity}
                         </li>
@@ -374,8 +380,8 @@ export default function PurchaseQuotationPage() {
                     </ul>
                   </td>
                   <td className="py-2 px-4 border-b space-x-2">
-                    <Button variant="secondary" onClick={() => handleEditQuotation(quotation)}>Edit</Button>
-                    <Button variant="destructive" onClick={() => handleDeleteQuotation(quotation.id)}>Delete</Button>
+                    <Button variant="secondary" onClick={() => handleEditSalesQuotation(salesQuotation)}>Edit</Button>
+                    <Button variant="destructive" onClick={() => handleDeleteSalesQuotation(salesQuotation.id)}>Delete</Button>
                   </td>
                 </tr>
               ))}
