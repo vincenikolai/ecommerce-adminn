@@ -80,6 +80,7 @@ export async function GET(req: Request) {
         supplierid (supplier_shop)
       `);
 
+    console.log("API Route - Raw purchaseordermaterial data:", JSON.stringify(purchaseOrders, null, 2));
     if (fetchError) {
       console.error("API Route - Error fetching purchase orders:", fetchError);
       return NextResponse.json({ error: fetchError.message }, { status: 500 });

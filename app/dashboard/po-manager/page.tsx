@@ -133,7 +133,7 @@ export default function POManagerPage() {
       // Map purchaseordermaterial to materials for frontend compatibility
       const transformedData = data.map(po => ({
         ...po,
-        materials: po.materials || [], // Revert to the previous mapping
+        materials: (po as any).purchaseordermaterial || [], // Correctly map purchaseordermaterial to materials
       }));
 
       console.log("Fetched and Transformed Purchase Orders:", transformedData);
