@@ -196,3 +196,120 @@ enum PurchaseInvoiceStatus {
 
   @@schema("public")
 }
+
+model Product {
+  id          String   @id @default(uuid())
+  name        String
+  description String?
+  price       Float
+  imageUrl    String?
+  category    String
+  stock       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  cartItems   CartItem[]
+  orderItems  OrderItem[]
+
+  @@map("products")
+  @@schema("public")
+}
+
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String     @db.Uuid
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  items     CartItem[]
+
+  @@map("carts")
+  @@schema("public")
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  cartId    String   @db.Uuid
+  productId String   @db.Uuid
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id])
+
+  @@map("cart_items")
+  @@schema("public")
+}
+
+model Order {
+  id             String      @id @default(uuid())
+  userId         String      @db.Uuid
+  orderNumber    String      @unique
+  status         OrderStatus @default(Pending)
+  totalAmount    Float
+  paymentMethod  String
+  deliveryMethod String
+  deliveryStatus String      @default("Pending")
+  notes          String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  items          OrderItem[]
+  orderHistory   OrderHistory[]
+
+  @@map("orders")
+  @@schema("public")
+}
+
+model OrderItem {
+  id        String  @id @default(uuid())
+  orderId   String  @db.Uuid
+  productId String  @db.Uuid
+  quantity  Int
+  price     Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+  @@schema("public")
+}
+
+model OrderHistory {
+  id          String   @id @default(uuid())
+  orderId     String   @db.Uuid
+  status      OrderStatus
+  notes       String?
+  createdAt   DateTime @default(now())
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_history")
+  @@schema("public")
+}
+
+enum OrderStatus {
+  Pending
+  Confirmed
+  Processing
+  Shipped
+  Delivered
+  Cancelled
+  Refunded
+
+  @@schema("public")
+}
+
+model Review {
+  id          String   @id @default(uuid())
+  userId      String   @db.Uuid
+  userName    String
+  userEmail   String
+  rating      Int      // 1-5 stars
+  title       String
+  content     String
+  isApproved  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("reviews")
+  @@schema("public")
+}
