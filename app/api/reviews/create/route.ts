@@ -1,10 +1,55 @@
 import { NextResponse } from "next/server";
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
+import { cookies } from "next/headers";
 
 // Simple in-memory reviews storage (for demo purposes)
 let reviews: any[] = [];
 
 export async function POST(req: Request) {
   try {
+    const authClient = createRouteHandlerClient({ cookies });
+    const {
+      data: { session },
+      error: sessionError,
+    } = await authClient.auth.getSession();
+
+    if (sessionError) {
+      console.error("Session error:", sessionError);
+      return NextResponse.json(
+        { error: sessionError.message },
+        { status: 401 }
+      );
+    }
+
+    if (!session) {
+      return NextResponse.json(
+        { error: "Authentication required to submit reviews" },
+        { status: 401 }
+      );
+    }
+
+    // Get user profile to check role
+    const { data: profile, error: profileError } = await authClient
+      .from("profiles")
+      .select("role, first_name, last_name")
+      .eq("id", session.user.id)
+      .single();
+
+    if (profileError || !profile) {
+      return NextResponse.json(
+        { error: "User profile not found" },
+        { status: 404 }
+      );
+    }
+
+    // Only customers can submit reviews
+    if (profile.role !== "customer") {
+      return NextResponse.json(
+        { error: "Only customers can submit reviews" },
+        { status: 403 }
+      );
+    }
+
     const { userName, userEmail, rating, title, content } = await req.json();
 
     if (!rating || !title || !content) {
@@ -25,12 +70,17 @@ export async function POST(req: Request) {
       );
     }
 
-    // Create review (anonymous reviews allowed)
+    // Use customer's actual name or provided name
+    const customerName = userName?.trim() || 
+      `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || 
+      "Customer";
+
+    // Create review (customers only)
     const review = {
       id: `review-${Date.now()}`,
-      userId: "anonymous",
-      userName: userName?.trim() || "Anonymous",
-      userEmail: userEmail || "anonymous@example.com",
+      userId: session.user.id,
+      userName: customerName,
+      userEmail: session.user.email || userEmail || "customer@example.com",
       rating: parseInt(rating),
       title: title.trim(),
       content: content.trim(),
