@@ -19,6 +19,7 @@ export interface CreateProductRequest {
   category?: string;
   imageUrl?: string;
   isActive?: boolean;
+  bom?: { rawMaterialId: string; quantityPerUnit: number }[];
 }
 
 export interface UpdateProductRequest {
@@ -29,5 +30,5 @@ export interface UpdateProductRequest {
   category?: string;
   imageUrl?: string;
   isActive?: boolean;
+  bom?: { rawMaterialId: string; quantityPerUnit: number }[];
 }
-

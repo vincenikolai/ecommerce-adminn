@@ -206,6 +206,32 @@ export async function PATCH(
       return NextResponse.json({ error: updateError.message }, { status: 500 });
     }
 
+    // Inventory allocation/deallocation based on status transitions
+    try {
+      if (updateData.status === "Confirmed") {
+        // Allocate raw materials using BOM (transaction inside SQL function)
+        const { error: allocError } = await adminSupabase.rpc(
+          "fn_allocate_materials_for_order",
+          { p_order_id: params.orderId }
+        );
+        if (allocError) {
+          console.error("Error allocating materials:", allocError);
+        }
+      } else if (updateData.status === "Cancelled") {
+        // Reverse any allocations
+        const { error: revError } = await adminSupabase.rpc(
+          "fn_reverse_allocations_for_order",
+          { p_order_id: params.orderId }
+        );
+        if (revError) {
+          console.error("Error reversing allocations:", revError);
+        }
+      }
+    } catch (invErr) {
+      console.error("Inventory allocation step failed:", invErr);
+      // Continue; order status has been updated. Manual remediation may be needed.
+    }
+
     // Add to order history
     const { error: historyError } = await adminSupabase
       .from("order_history")
@@ -234,4 +260,3 @@ export async function PATCH(
     );
   }
 }
-
