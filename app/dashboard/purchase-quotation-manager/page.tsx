@@ -1,16 +1,36 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { createClientComponentClient, Session } from '@supabase/auth-helpers-nextjs';
-import toast from 'react-hot-toast';
-import { UserProfile, UserRole } from '@/types/user';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PurchaseQuotation, PurchaseQuotationMaterial } from '@/types/purchase-quotation'; // We'll create this type next
-import { SupplierManagementItem } from '@/types/supplier-management';
-import { RawMaterial } from '@/types/raw-material';
+import { useEffect, useState } from "react";
+import {
+  createClientComponentClient,
+  Session,
+} from "@supabase/auth-helpers-nextjs";
+import toast from "react-hot-toast";
+import { UserProfile, UserRole } from "@/types/user";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  PurchaseQuotation,
+  PurchaseQuotationMaterial,
+} from "@/types/purchase-quotation"; // We'll create this type next
+import { SupplierManagementItem } from "@/types/supplier-management";
+import { RawMaterial } from "@/types/raw-material";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 const SALES_QUOTATION_MANAGER_ROLE: UserRole = "sales_quotation_manager";
 
@@ -20,27 +40,45 @@ export default function SalesQuotationPage() {
   const [userRole, setUserRole] = useState<UserProfile["role"] | null>(null);
   const supabase = createClientComponentClient();
 
-  const [salesQuotations, setSalesQuotations] = useState<PurchaseQuotation[]>([]);
+  const [salesQuotations, setSalesQuotations] = useState<PurchaseQuotation[]>(
+    []
+  );
   const [suppliers, setSuppliers] = useState<SupplierManagementItem[]>([]);
   const [rawMaterials, setRawMaterials] = useState<RawMaterial[]>([]);
 
+  // State for material selection for conversion
+  const [selectedMaterialsForConversion, setSelectedMaterialsForConversion] =
+    useState<Map<string, Set<string>>>(new Map());
+  const [showConvertDialog, setShowConvertDialog] = useState(false);
+  const [quotationToConvert, setQuotationToConvert] =
+    useState<PurchaseQuotation | null>(null);
+
   // Form states for creating a new quotation
-  const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(null);
+  const [selectedSupplierId, setSelectedSupplierId] = useState<string | null>(
+    null
+  );
   const [quotedPrice, setQuotedPrice] = useState<string>("");
   const [validityDate, setValidityDate] = useState<string>("");
-  const [selectedMaterials, setSelectedMaterials] = useState<{ rawMaterialId: string; quantity: number }[]>([]);
-  const [editingQuotationId, setEditingQuotationId] = useState<string | null>(null);
+  const [formMaterials, setFormMaterials] = useState<
+    { rawMaterialId: string; quantity: number }[]
+  >([]);
+  const [editingQuotationId, setEditingQuotationId] = useState<string | null>(
+    null
+  );
 
   const initialFormState = {
     selectedSupplierId: null,
     quotedPrice: "",
     validityDate: "",
-    selectedMaterials: [],
+    formMaterials: [],
   };
 
   useEffect(() => {
     const getSessionAndRole = async () => {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      const {
+        data: { session },
+        error: sessionError,
+      } = await supabase.auth.getSession();
       if (sessionError) {
         console.error("Session error:", sessionError);
         toast.error("Error fetching session: " + sessionError.message);
@@ -51,9 +89,9 @@ export default function SalesQuotationPage() {
 
       if (session?.user?.id) {
         const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', session.user.id)
+          .from("profiles")
+          .select("role")
+          .eq("id", session.user.id)
           .single();
 
         if (profileError) {
@@ -80,7 +118,10 @@ export default function SalesQuotationPage() {
       setSuppliers(data);
     } catch (error: unknown) {
       console.error("Error fetching suppliers:", error);
-      toast.error("Error loading suppliers: " + (error instanceof Error ? error.message : "An unknown error occurred"));
+      toast.error(
+        "Error loading suppliers: " +
+          (error instanceof Error ? error.message : "An unknown error occurred")
+      );
     }
   };
 
@@ -95,7 +136,10 @@ export default function SalesQuotationPage() {
       setRawMaterials(data);
     } catch (error: unknown) {
       console.error("Error fetching raw materials:", error);
-      toast.error("Error loading raw materials: " + (error instanceof Error ? error.message : "An unknown error occurred"));
+      toast.error(
+        "Error loading raw materials: " +
+          (error instanceof Error ? error.message : "An unknown error occurred")
+      );
     }
   };
 
@@ -111,7 +155,10 @@ export default function SalesQuotationPage() {
       setSalesQuotations(data);
     } catch (error: unknown) {
       console.error("Error fetching sales quotations:", error);
-      toast.error("Error: " + (error instanceof Error ? error.message : "An unknown error occurred"));
+      toast.error(
+        "Error: " +
+          (error instanceof Error ? error.message : "An unknown error occurred")
+      );
     } finally {
       setIsLoading(false);
     }
@@ -126,32 +173,43 @@ export default function SalesQuotationPage() {
   }, [session, userRole]);
 
   const handleAddMaterial = (rawMaterialId: string) => {
-    setSelectedMaterials(prev => {
-      const existing = prev.find(m => m.rawMaterialId === rawMaterialId);
+    setFormMaterials((prev) => {
+      const existing = prev.find((m) => m.rawMaterialId === rawMaterialId);
       if (existing) {
-        return prev.map(m => m.rawMaterialId === rawMaterialId ? { ...m, quantity: m.quantity + 1 } : m);
+        return prev.map((m) =>
+          m.rawMaterialId === rawMaterialId
+            ? { ...m, quantity: m.quantity + 1 }
+            : m
+        );
       } else {
         return [...prev, { rawMaterialId: rawMaterialId, quantity: 1 }];
       }
     });
   };
 
-  const handleUpdateMaterialQuantity = (rawMaterialId: string, quantity: number) => {
-    setSelectedMaterials(prev =>
-      prev.map(m => m.rawMaterialId === rawMaterialId ? { ...m, quantity: quantity } : m)
+  const handleUpdateMaterialQuantity = (
+    rawMaterialId: string,
+    quantity: number
+  ) => {
+    setFormMaterials((prev) =>
+      prev.map((m) =>
+        m.rawMaterialId === rawMaterialId ? { ...m, quantity: quantity } : m
+      )
     );
   };
 
   const handleRemoveMaterial = (rawMaterialId: string) => {
-    setSelectedMaterials(prev => prev.filter(m => m.rawMaterialId !== rawMaterialId));
+    setFormMaterials((prev) =>
+      prev.filter((m) => m.rawMaterialId !== rawMaterialId)
+    );
   };
 
   const handleEditSalesQuotation = (salesQuotation: PurchaseQuotation) => {
     setEditingQuotationId(salesQuotation.id);
     setSelectedSupplierId(salesQuotation.supplierid);
     setQuotedPrice(salesQuotation.quotedPrice.toString());
-    setValidityDate(salesQuotation.validityDate.split('T')[0]); // Format date for input
-    setSelectedMaterials(salesQuotation.materials || []);
+    setValidityDate(salesQuotation.validityDate.split("T")[0]); // Format date for input
+    setFormMaterials(salesQuotation.materials || []);
   };
 
   const handleCancelEditSalesQuotation = () => {
@@ -159,14 +217,21 @@ export default function SalesQuotationPage() {
     setSelectedSupplierId(initialFormState.selectedSupplierId);
     setQuotedPrice(initialFormState.quotedPrice);
     setValidityDate(initialFormState.validityDate);
-    setSelectedMaterials(initialFormState.selectedMaterials);
+    setFormMaterials(initialFormState.formMaterials);
   };
 
   const handleSubmitNewSalesQuotation = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!selectedSupplierId || quotedPrice === "" || !validityDate || selectedMaterials.length === 0) {
-      toast.error("Please fill in all required fields and add at least one material.");
+    if (
+      !selectedSupplierId ||
+      quotedPrice === "" ||
+      !validityDate ||
+      formMaterials.length === 0
+    ) {
+      toast.error(
+        "Please fill in all required fields and add at least one material."
+      );
       return;
     }
 
@@ -174,7 +239,7 @@ export default function SalesQuotationPage() {
       supplierId: selectedSupplierId,
       quotedPrice: parseFloat(quotedPrice),
       validityDate: validityDate,
-      materials: selectedMaterials,
+      materials: formMaterials,
     };
 
     try {
@@ -193,28 +258,50 @@ export default function SalesQuotationPage() {
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || `Failed to ${editingQuotationId ? "update" : "create"} sales quotation`);
+        throw new Error(
+          errorData.error ||
+            `Failed to ${
+              editingQuotationId ? "update" : "create"
+            } sales quotation`
+        );
       }
 
-      toast.success(`Sales quotation ${editingQuotationId ? "updated" : "created"}!`);
+      toast.success(
+        `Sales quotation ${editingQuotationId ? "updated" : "created"}!`
+      );
       // Clear form and re-fetch data
       handleCancelEditSalesQuotation(); // Use the new cancel function to clear the form
       fetchSalesQuotations();
     } catch (error: unknown) {
-      console.error(`Error ${editingQuotationId ? "updating" : "creating"} sales quotation:`, error);
-      toast.error(`Error ${editingQuotationId ? "updating" : "creating"} sales quotation: ` + (error instanceof Error ? error.message : "An unknown error occurred"));
+      console.error(
+        `Error ${
+          editingQuotationId ? "updating" : "creating"
+        } sales quotation:`,
+        error
+      );
+      toast.error(
+        `Error ${
+          editingQuotationId ? "updating" : "creating"
+        } sales quotation: ` +
+          (error instanceof Error ? error.message : "An unknown error occurred")
+      );
     }
   };
 
   const handleDeleteSalesQuotation = async (salesQuotationId: string) => {
-    if (!window.confirm("Are you sure you want to delete this sales quotation?")) {
+    if (
+      !window.confirm("Are you sure you want to delete this sales quotation?")
+    ) {
       return;
     }
 
     try {
-      const response = await fetch(`/api/admin/purchase-quotations/delete?id=${salesQuotationId}`, {
-        method: "DELETE",
-      });
+      const response = await fetch(
+        `/api/admin/purchase-quotations/delete?id=${salesQuotationId}`,
+        {
+          method: "DELETE",
+        }
+      );
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -225,7 +312,94 @@ export default function SalesQuotationPage() {
       fetchSalesQuotations();
     } catch (error: unknown) {
       console.error("Error deleting sales quotation:", error);
-      toast.error("Error deleting sales quotation: " + (error instanceof Error ? error.message : "An unknown error occurred"));
+      toast.error(
+        "Error deleting sales quotation: " +
+          (error instanceof Error ? error.message : "An unknown error occurred")
+      );
+    }
+  };
+
+  const handleMaterialToggle = (quotationId: string, materialId: string) => {
+    setSelectedMaterialsForConversion((prev) => {
+      const newMap = new Map(prev);
+      if (!newMap.has(quotationId)) {
+        newMap.set(quotationId, new Set());
+      }
+      const materialSet = newMap.get(quotationId)!;
+      if (materialSet.has(materialId)) {
+        materialSet.delete(materialId);
+      } else {
+        materialSet.add(materialId);
+      }
+      if (materialSet.size === 0) {
+        newMap.delete(quotationId);
+      }
+      return newMap;
+    });
+  };
+
+  const handleConvertToSalesOrder = (quotation: PurchaseQuotation) => {
+    const selectedForQuotation = selectedMaterialsForConversion.get(
+      quotation.id
+    );
+    if (!selectedForQuotation || selectedForQuotation.size === 0) {
+      toast.error("Please select at least one material to convert");
+      return;
+    }
+    setQuotationToConvert(quotation);
+    setShowConvertDialog(true);
+  };
+
+  const confirmConvertToSalesOrder = async () => {
+    if (!quotationToConvert) return;
+
+    const selectedForQuotation = selectedMaterialsForConversion.get(
+      quotationToConvert.id
+    );
+    if (!selectedForQuotation || selectedForQuotation.size === 0) {
+      toast.error("Please select at least one material to convert");
+      setShowConvertDialog(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        "/api/admin/purchase-quotations/convert-to-order",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            quotationId: quotationToConvert.id,
+            materialIds: Array.from(selectedForQuotation),
+          }),
+        }
+      );
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to convert to sales order");
+      }
+
+      toast.success("Sales quotation converted to sales order successfully!");
+      setShowConvertDialog(false);
+      setQuotationToConvert(null);
+
+      // Clear selection for this quotation
+      setSelectedMaterialsForConversion((prev) => {
+        const newMap = new Map(prev);
+        newMap.delete(quotationToConvert.id);
+        return newMap;
+      });
+
+      fetchSalesQuotations();
+    } catch (error: unknown) {
+      console.error("Error converting to sales order:", error);
+      toast.error(
+        "Error converting to sales order: " +
+          (error instanceof Error ? error.message : "An unknown error occurred")
+      );
     }
   };
 
@@ -234,20 +408,29 @@ export default function SalesQuotationPage() {
   }
 
   if (!session || userRole !== SALES_QUOTATION_MANAGER_ROLE) {
-    return <div className="p-6 text-red-500">Access Denied: You do not have "Sales Quotation Manager" privileges to view this page.</div>;
+    return (
+      <div className="p-6 text-red-500">
+        Access Denied: You do not have "Sales Quotation Manager" privileges to
+        view this page.
+      </div>
+    );
   }
 
   const getRawMaterialName = (id: string) => {
-    return rawMaterials.find(rm => rm.id === id)?.name || 'Unknown Raw Material';
+    return (
+      rawMaterials.find((rm) => rm.id === id)?.name || "Unknown Raw Material"
+    );
   };
 
   const getSupplierName = (id: string) => {
-    return suppliers.find(s => s.id === id)?.supplier_shop || 'Unknown Supplier';
+    return (
+      suppliers.find((s) => s.id === id)?.supplier_shop || "Unknown Supplier"
+    );
   };
 
   const getSalesQuotationNumber = (id: string | null | undefined) => {
-    if (!id) return 'N/A';
-    return salesQuotations.find(pq => pq.id === id)?.id || 'N/A';
+    if (!id) return "N/A";
+    return salesQuotations.find((pq) => pq.id === id)?.id || "N/A";
   };
 
   return (
@@ -255,11 +438,19 @@ export default function SalesQuotationPage() {
       <h1 className="text-2xl font-bold mb-6">Sales Quotation Management</h1>
 
       <h2 className="text-xl font-semibold mb-4">Create New Sales Quotation</h2>
-      <form onSubmit={handleSubmitNewSalesQuotation} className="grid gap-4 mb-8 p-4 border rounded-md bg-gray-50">
+      <form
+        onSubmit={handleSubmitNewSalesQuotation}
+        className="grid gap-4 mb-8 p-4 border rounded-md bg-gray-50"
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="supplier">Supplier Name</Label>
-            <Select onValueChange={(value) => setSelectedSupplierId(value === "none-selected" ? null : value)} value={selectedSupplierId || "none-selected"}>
+            <Select
+              onValueChange={(value) =>
+                setSelectedSupplierId(value === "none-selected" ? null : value)
+              }
+              value={selectedSupplierId || "none-selected"}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select a supplier" />
               </SelectTrigger>
@@ -296,7 +487,9 @@ export default function SalesQuotationPage() {
           </div>
         </div>
 
-        <h3 className="text-lg font-medium mt-4 mb-2">Materials for Quotation</h3>
+        <h3 className="text-lg font-medium mt-4 mb-2">
+          Materials for Quotation
+        </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="rawMaterial">Select Raw Material</Label>
@@ -316,21 +509,33 @@ export default function SalesQuotationPage() {
         </div>
 
         <div className="mt-4">
-          {selectedMaterials.length === 0 ? (
+          {formMaterials.length === 0 ? (
             <p>No materials added to this quotation.</p>
           ) : (
             <ul className="space-y-2">
-              {selectedMaterials.map((material) => (
-                <li key={material.rawMaterialId} className="flex items-center space-x-2">
+              {formMaterials.map((material) => (
+                <li
+                  key={material.rawMaterialId}
+                  className="flex items-center space-x-2"
+                >
                   <span>{getRawMaterialName(material.rawMaterialId)}</span>
                   <Input
                     type="number"
                     min="1"
                     value={material.quantity}
-                    onChange={(e) => handleUpdateMaterialQuantity(material.rawMaterialId, parseInt(e.target.value, 10))}
+                    onChange={(e) =>
+                      handleUpdateMaterialQuantity(
+                        material.rawMaterialId,
+                        parseInt(e.target.value, 10)
+                      )
+                    }
                     className="w-20"
                   />
-                  <Button variant="destructive" size="sm" onClick={() => handleRemoveMaterial(material.rawMaterialId)}>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleRemoveMaterial(material.rawMaterialId)}
+                  >
                     Remove
                   </Button>
                 </li>
@@ -339,16 +544,25 @@ export default function SalesQuotationPage() {
           )}
         </div>
         <Button type="submit" disabled={isLoading} className="mt-4">
-          {editingQuotationId ? "Update Sales Quotation" : "Create Sales Quotation"}
+          {editingQuotationId
+            ? "Update Sales Quotation"
+            : "Create Sales Quotation"}
         </Button>
         {editingQuotationId && (
-          <Button type="button" variant="outline" onClick={handleCancelEditSalesQuotation} className="mt-2">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleCancelEditSalesQuotation}
+            className="mt-2"
+          >
             Cancel Edit
           </Button>
         )}
       </form>
 
-      <h2 className="text-xl font-semibold mb-4 mt-8">Existing Sales Quotations</h2>
+      <h2 className="text-xl font-semibold mb-4 mt-8">
+        Existing Sales Quotations
+      </h2>
       {salesQuotations.length === 0 ? (
         <p>No sales quotations found.</p>
       ) : (
@@ -356,6 +570,7 @@ export default function SalesQuotationPage() {
           <table className="min-w-full bg-white border border-gray-200">
             <thead>
               <tr>
+                <th className="py-2 px-4 border-b text-left">Select</th>
                 <th className="py-2 px-4 border-b text-left">Supplier</th>
                 <th className="py-2 px-4 border-b text-left">Quoted Price</th>
                 <th className="py-2 px-4 border-b text-left">Validity Date</th>
@@ -364,31 +579,132 @@ export default function SalesQuotationPage() {
               </tr>
             </thead>
             <tbody>
-              {salesQuotations.map((salesQuotation) => (
-                <tr key={salesQuotation.id} className="hover:bg-gray-50">
-                  <td className="py-2 px-4 border-b">{getSupplierName(salesQuotation.supplierid || '')}</td>
-                  <td className="py-2 px-4 border-b">₱{salesQuotation.quotedPrice.toFixed(2)}</td>
-                  <td className="py-2 px-4 border-b">{new Date(salesQuotation.validityDate).toLocaleDateString()}</td>
-                  <td className="py-2 px-4 border-b">
-                    <ul className="list-disc list-inside">
-                      {console.log(`PO ID: ${salesQuotation.id}, Materials:`, salesQuotation.materials)}
-                      {salesQuotation.materials?.map(material => (
-                        <li key={material.rawMaterialId}>
-                          {getRawMaterialName(material.rawMaterialId)} x {material.quantity}
-                        </li>
-                      ))}
-                    </ul>
-                  </td>
-                  <td className="py-2 px-4 border-b space-x-2">
-                    <Button variant="secondary" onClick={() => handleEditSalesQuotation(salesQuotation)}>Edit</Button>
-                    <Button variant="destructive" onClick={() => handleDeleteSalesQuotation(salesQuotation.id)}>Delete</Button>
-                  </td>
-                </tr>
-              ))}
+              {salesQuotations.map((salesQuotation) => {
+                const selectedForQuotation =
+                  selectedMaterialsForConversion.get(salesQuotation.id) ||
+                  new Set();
+                const hasSelectedMaterials = selectedForQuotation.size > 0;
+
+                return (
+                  <tr key={salesQuotation.id} className="hover:bg-gray-50">
+                    <td className="py-2 px-4 border-b">
+                      <Checkbox
+                        checked={
+                          hasSelectedMaterials &&
+                          salesQuotation.materials?.every((m) =>
+                            selectedForQuotation.has(m.id)
+                          )
+                        }
+                        onCheckedChange={(checked) => {
+                          if (salesQuotation.materials) {
+                            salesQuotation.materials.forEach((material) => {
+                              handleMaterialToggle(
+                                salesQuotation.id,
+                                material.id
+                              );
+                            });
+                          }
+                        }}
+                      />
+                    </td>
+                    <td className="py-2 px-4 border-b">
+                      {getSupplierName(salesQuotation.supplierid || "")}
+                    </td>
+                    <td className="py-2 px-4 border-b">
+                      ₱{salesQuotation.quotedPrice.toFixed(2)}
+                    </td>
+                    <td className="py-2 px-4 border-b">
+                      {new Date(
+                        salesQuotation.validityDate
+                      ).toLocaleDateString()}
+                    </td>
+                    <td className="py-2 px-4 border-b">
+                      <ul className="list-disc list-inside space-y-1">
+                        {salesQuotation.materials?.map((material) => (
+                          <li
+                            key={material.id}
+                            className="flex items-center gap-2"
+                          >
+                            <Checkbox
+                              checked={selectedForQuotation.has(material.id)}
+                              onCheckedChange={() =>
+                                handleMaterialToggle(
+                                  salesQuotation.id,
+                                  material.id
+                                )
+                              }
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                            <span>
+                              {getRawMaterialName(material.rawMaterialId)} x{" "}
+                              {material.quantity}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    </td>
+                    <td className="py-2 px-4 border-b space-x-2">
+                      <Button
+                        variant="secondary"
+                        onClick={() => handleEditSalesQuotation(salesQuotation)}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        onClick={() =>
+                          handleDeleteSalesQuotation(salesQuotation.id)
+                        }
+                      >
+                        Delete
+                      </Button>
+                      {hasSelectedMaterials && (
+                        <Button
+                          variant="default"
+                          onClick={() =>
+                            handleConvertToSalesOrder(salesQuotation)
+                          }
+                          className="bg-blue-600 hover:bg-blue-700"
+                        >
+                          Convert to Sales Order
+                        </Button>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
       )}
+
+      {/* Confirmation Dialog */}
+      <Dialog open={showConvertDialog} onOpenChange={setShowConvertDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Convert to Sales Order</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p>
+              Are you sure you want to convert the selected materials to a Sales
+              Order?
+            </p>
+            <p className="text-sm text-gray-600 mt-2">
+              This will create a new Sales Order and remove this quotation from
+              the Sales Quotation list.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowConvertDialog(false)}
+            >
+              No
+            </Button>
+            <Button onClick={confirmConvertToSalesOrder}>Yes, Convert</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

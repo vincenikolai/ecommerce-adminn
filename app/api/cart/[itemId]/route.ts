@@ -76,12 +76,35 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    // Check stock availability
-    if (cartItem.product.stock < quantity) {
+    const currentCartQuantity = cartItem.quantity;
+    const quantityDifference = quantity - currentCartQuantity;
+
+    // Check stock availability for the new quantity
+    if (cartItem.product.stock + currentCartQuantity < quantity) {
       return NextResponse.json(
-        { error: `Only ${cartItem.product.stock} items available in stock` },
+        {
+          error: `Only ${
+            cartItem.product.stock + currentCartQuantity
+          } items available in stock`,
+        },
         { status: 400 }
       );
+    }
+
+    // Adjust stock based on quantity change
+    if (quantityDifference !== 0) {
+      const { error: stockError } = await adminSupabase
+        .from("products")
+        .update({ stock: cartItem.product.stock - quantityDifference })
+        .eq("id", cartItem.productId);
+
+      if (stockError) {
+        console.error("Error updating product stock:", stockError);
+        return NextResponse.json(
+          { error: "Failed to update product stock" },
+          { status: 500 }
+        );
+      }
     }
 
     // Update cart item
@@ -91,6 +114,14 @@ export async function PUT(
       .eq("id", params.itemId);
 
     if (updateError) {
+      // Rollback stock change if update fails
+      if (quantityDifference !== 0) {
+        await adminSupabase
+          .from("products")
+          .update({ stock: cartItem.product.stock })
+          .eq("id", cartItem.productId);
+      }
+
       console.error("Error updating cart item:", updateError);
       return NextResponse.json({ error: updateError.message }, { status: 500 });
     }
@@ -169,6 +200,17 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
+    // Get product to restore stock
+    const { data: product, error: productError } = await adminSupabase
+      .from("products")
+      .select("*")
+      .eq("id", cartItem.productId)
+      .single();
+
+    if (productError) {
+      console.error("Error fetching product:", productError);
+    }
+
     // Delete cart item
     const { error: deleteError } = await adminSupabase
       .from("cart_items")
@@ -178,6 +220,19 @@ export async function DELETE(
     if (deleteError) {
       console.error("Error deleting cart item:", deleteError);
       return NextResponse.json({ error: deleteError.message }, { status: 500 });
+    }
+
+    // Restore stock if product was found
+    if (product) {
+      const { error: stockError } = await adminSupabase
+        .from("products")
+        .update({ stock: product.stock + cartItem.quantity })
+        .eq("id", cartItem.productId);
+
+      if (stockError) {
+        console.error("Error restoring product stock:", stockError);
+        // Non-critical error, don't fail the delete
+      }
     }
 
     return NextResponse.json({ message: "Cart item removed successfully" });
@@ -191,4 +246,3 @@ export async function DELETE(
     );
   }
 }
-

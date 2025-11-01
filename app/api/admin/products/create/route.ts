@@ -92,8 +92,34 @@ export async function POST(req: Request) {
 
     if (!name || !price || stock === undefined) {
       return NextResponse.json(
-        { error: "Name, price, and stock for raw material are required." },
+        { error: "Name, price, and stock are required." },
         { status: 400 }
+      );
+    }
+
+    // Find or get EAST LA CHEMICALS supplier
+    let eastLaChemicalsSupplier = await localAdminSupabase
+      .from("supplier_management_items")
+      .select("*")
+      .ilike("name", "EAST LA CHEMICALS")
+      .single();
+
+    if (eastLaChemicalsSupplier.error || !eastLaChemicalsSupplier.data) {
+      // Try alternative search
+      eastLaChemicalsSupplier = await localAdminSupabase
+        .from("supplier_management_items")
+        .select("*")
+        .ilike("name", "%EAST LA%")
+        .single();
+    }
+
+    let supplierId: string | null = null;
+    if (eastLaChemicalsSupplier.data) {
+      supplierId = eastLaChemicalsSupplier.data.id;
+    } else {
+      // If supplier not found, log warning but continue (supplierId will be null)
+      console.warn(
+        "EAST LA CHEMICALS supplier not found. Product will be created without supplier."
       );
     }
 
@@ -101,14 +127,43 @@ export async function POST(req: Request) {
       await localAdminSupabase
         .from("products")
         .insert([
-          { name, description, price, stock, category, imageUrl, isActive },
+          {
+            name,
+            description,
+            price,
+            stock,
+            category,
+            imageUrl,
+            isActive,
+            supplierId,
+          },
         ])
         .select("*")
         .single();
 
     if (insertError) {
-      console.error("Error inserting raw material:", insertError);
+      console.error("Error inserting product:", insertError);
       return NextResponse.json({ error: insertError.message }, { status: 500 });
+    }
+
+    // Also create raw material entry for this product
+    if (createdProducts) {
+      const rawMaterialData = {
+        name: createdProducts.name,
+        category: createdProducts.category || "Finished Product",
+        unitOfMeasure: "unit",
+        stock: createdProducts.stock,
+        defaultSupplierId: supplierId,
+      };
+
+      const { error: rawMaterialError } = await localAdminSupabase
+        .from("RawMaterial")
+        .insert([rawMaterialData]);
+
+      if (rawMaterialError) {
+        console.error("Error creating raw material entry:", rawMaterialError);
+        // Non-critical error - product was created successfully
+      }
     }
 
     // If BOM provided, insert mappings

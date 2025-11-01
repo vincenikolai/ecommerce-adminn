@@ -13,6 +13,7 @@ export interface PurchaseQuotation {
   supplier?: { name: string; supplier_shop: string }; // Optional to include supplier details
   quotedPrice: number;
   validityDate: string;
+  isOrder?: boolean;
   createdAt: string;
   updatedAt: string;
   materials?: PurchaseQuotationMaterial[]; // Optional to include material details

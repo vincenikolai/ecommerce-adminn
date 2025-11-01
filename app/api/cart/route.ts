@@ -1,9 +1,7 @@
 import { NextResponse } from "next/server";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
-
-// Simple in-memory cart storage (for demo purposes)
-let carts: { [userId: string]: any } = {};
+import { createClient } from "@supabase/supabase-js";
 
 export async function GET(req: Request) {
   try {
@@ -47,19 +45,79 @@ export async function GET(req: Request) {
       );
     }
 
-    const userId = session.user.id;
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+    const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
-    if (!carts[userId]) {
-      carts[userId] = {
-        id: `cart-${userId}`,
-        userId: userId,
-        items: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+    if (!supabaseUrl || !supabaseServiceRoleKey) {
+      throw new Error(
+        "Missing environment variables for Supabase admin client"
+      );
     }
 
-    return NextResponse.json(carts[userId]);
+    const adminSupabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
+      auth: {
+        persistSession: false,
+      },
+    });
+
+    const userId = session.user.id;
+
+    // Get or create cart for user
+    let { data: cart, error: cartError } = await adminSupabase
+      .from("carts")
+      .select("*")
+      .eq("userId", userId)
+      .single();
+
+    if (cartError && cartError.code === "PGRST116") {
+      // Cart doesn't exist, create it
+      const newCart = {
+        userId: userId,
+      };
+
+      const { data: createdCart, error: createError } = await adminSupabase
+        .from("carts")
+        .insert([newCart])
+        .select()
+        .single();
+
+      if (createError || !createdCart) {
+        console.error("Error creating cart:", createError);
+        return NextResponse.json(
+          { error: "Failed to create cart" },
+          { status: 500 }
+        );
+      }
+
+      cart = createdCart;
+    } else if (cartError) {
+      console.error("Error fetching cart:", cartError);
+      return NextResponse.json({ error: cartError.message }, { status: 500 });
+    }
+
+    // Get cart items with product details
+    const { data: cartItems, error: itemsError } = await adminSupabase
+      .from("cart_items")
+      .select(
+        `
+        *,
+        product:products(*)
+      `
+      )
+      .eq("cartId", cart.id);
+
+    if (itemsError) {
+      console.error("Error fetching cart items:", itemsError);
+      return NextResponse.json({ error: itemsError.message }, { status: 500 });
+    }
+
+    return NextResponse.json({
+      id: cart.id,
+      userId: cart.userId,
+      createdAt: cart.createdAt,
+      updatedAt: cart.updatedAt,
+      items: cartItems || [],
+    });
   } catch (error: unknown) {
     console.error("Unexpected error in cart API:", error);
     return NextResponse.json(
@@ -122,39 +180,186 @@ export async function POST(req: Request) {
       );
     }
 
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+    const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+
+    if (!supabaseUrl || !supabaseServiceRoleKey) {
+      throw new Error(
+        "Missing environment variables for Supabase admin client"
+      );
+    }
+
+    const adminSupabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
+      auth: {
+        persistSession: false,
+      },
+    });
+
     const userId = session.user.id;
 
-    if (!carts[userId]) {
-      carts[userId] = {
-        id: `cart-${userId}`,
+    // Get product and check stock
+    const { data: product, error: productError } = await adminSupabase
+      .from("products")
+      .select("*")
+      .eq("id", productId)
+      .single();
+
+    if (productError || !product) {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
+    }
+
+    // Check stock availability
+    if (product.stock < quantity) {
+      return NextResponse.json(
+        { error: `Only ${product.stock} items available in stock` },
+        { status: 400 }
+      );
+    }
+
+    // Get or create cart for user
+    let { data: cart, error: cartError } = await adminSupabase
+      .from("carts")
+      .select("*")
+      .eq("userId", userId)
+      .single();
+
+    if (cartError && cartError.code === "PGRST116") {
+      // Cart doesn't exist, create it
+      const newCart = {
         userId: userId,
-        items: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
       };
+
+      const { data: createdCart, error: createError } = await adminSupabase
+        .from("carts")
+        .insert([newCart])
+        .select()
+        .single();
+
+      if (createError || !createdCart) {
+        console.error("Error creating cart:", createError);
+        return NextResponse.json(
+          { error: "Failed to create cart" },
+          { status: 500 }
+        );
+      }
+
+      cart = createdCart;
+    } else if (cartError) {
+      console.error("Error fetching cart:", cartError);
+      return NextResponse.json({ error: cartError.message }, { status: 500 });
     }
 
     // Check if item already exists in cart
-    const existingItemIndex = carts[userId].items.findIndex(
-      (item: any) => item.productId === productId
-    );
+    const { data: existingItem, error: existingItemError } = await adminSupabase
+      .from("cart_items")
+      .select("*")
+      .eq("cartId", cart.id)
+      .eq("productId", productId)
+      .single();
 
-    if (existingItemIndex >= 0) {
-      // Update existing item quantity
-      carts[userId].items[existingItemIndex].quantity += quantity;
-    } else {
-      // Add new item to cart
-      carts[userId].items.push({
-        id: `cart-item-${Date.now()}`,
-        cartId: carts[userId].id,
-        productId: productId,
-        quantity: quantity,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
+    if (existingItemError && existingItemError.code !== "PGRST116") {
+      console.error("Error checking existing cart item:", existingItemError);
+      return NextResponse.json(
+        { error: existingItemError.message },
+        { status: 500 }
+      );
     }
 
-    carts[userId].updatedAt = new Date().toISOString();
+    if (existingItem) {
+      // Update existing item quantity
+      const newQuantity = existingItem.quantity + quantity;
+
+      // Check stock availability for total quantity
+      if (product.stock < newQuantity) {
+        return NextResponse.json(
+          {
+            error: `Only ${
+              product.stock - existingItem.quantity
+            } more items available in stock`,
+          },
+          { status: 400 }
+        );
+      }
+
+      // Deduct stock
+      const { error: stockError } = await adminSupabase
+        .from("products")
+        .update({ stock: product.stock - quantity })
+        .eq("id", productId);
+
+      if (stockError) {
+        console.error("Error deducting stock:", stockError);
+        return NextResponse.json(
+          { error: "Failed to update product stock" },
+          { status: 500 }
+        );
+      }
+
+      // Update cart item
+      const { error: updateError } = await adminSupabase
+        .from("cart_items")
+        .update({ quantity: newQuantity })
+        .eq("id", existingItem.id);
+
+      if (updateError) {
+        // Rollback stock deduction
+        await adminSupabase
+          .from("products")
+          .update({ stock: product.stock })
+          .eq("id", productId);
+
+        console.error("Error updating cart item:", updateError);
+        return NextResponse.json(
+          { error: updateError.message },
+          { status: 500 }
+        );
+      }
+    } else {
+      // Deduct stock
+      const { error: stockError } = await adminSupabase
+        .from("products")
+        .update({ stock: product.stock - quantity })
+        .eq("id", productId);
+
+      if (stockError) {
+        console.error("Error deducting stock:", stockError);
+        return NextResponse.json(
+          { error: "Failed to update product stock" },
+          { status: 500 }
+        );
+      }
+
+      // Add new item to cart
+      const { error: insertError } = await adminSupabase
+        .from("cart_items")
+        .insert([
+          {
+            cartId: cart.id,
+            productId: productId,
+            quantity: quantity,
+          },
+        ]);
+
+      if (insertError) {
+        // Rollback stock deduction
+        await adminSupabase
+          .from("products")
+          .update({ stock: product.stock })
+          .eq("id", productId);
+
+        console.error("Error adding cart item:", insertError);
+        return NextResponse.json(
+          { error: insertError.message },
+          { status: 500 }
+        );
+      }
+    }
+
+    // Update cart timestamp
+    await adminSupabase
+      .from("carts")
+      .update({ updatedAt: new Date().toISOString() })
+      .eq("id", cart.id);
 
     return NextResponse.json({ message: "Item added to cart successfully" });
   } catch (error: unknown) {

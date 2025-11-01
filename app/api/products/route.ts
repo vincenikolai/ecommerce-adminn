@@ -1,149 +1,60 @@
 import { NextResponse } from "next/server";
-
-const products = [
-  {
-    id: "calamansi-dishwashing",
-    name: "Calamansi Liquid Dishwashing",
-    description:
-      "Natural calamansi-scented dishwashing liquid that effectively removes grease and food residues while leaving a fresh citrus fragrance.",
-    price: 100,
-    imageUrl: "/cleaning products.jpg",
-    category: "Dishwashing",
-    stock: 50,
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "lemon-dishwashing",
-    name: "Lemon Liquid Dishwashing",
-    description:
-      "Powerful lemon-scented dishwashing solution that cuts through tough grease and leaves dishes sparkling clean with a refreshing lemon scent.",
-    price: 100,
-    imageUrl: "/cleaning products.jpg",
-    category: "Dishwashing",
-    stock: 45,
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "lavender-handsoap",
-    name: "Lavender Liquid Handsoap",
-    description:
-      "Gentle lavender-scented hand soap that effectively cleans hands while providing a calming and soothing lavender fragrance.",
-    price: 120,
-    imageUrl: "/cleaning products.jpg",
-    category: "Handsoap",
-    stock: 30,
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "laundry-detergent",
-    name: "Liquid Laundry Detergent",
-    description:
-      "Concentrated liquid laundry detergent that removes tough stains and leaves clothes fresh and clean with a pleasant fragrance.",
-    price: 180,
-    imageUrl: "/laundry.png",
-    category: "Laundry",
-    stock: 25,
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "gpd-102",
-    name: "GPD 102",
-    description:
-      "Professional-grade cleaning solution designed for industrial and commercial use. Effective against various types of dirt and grime.",
-    price: 250,
-    imageUrl: "/cleaning products.jpg",
-    category: "Industrial Cleaner",
-    stock: 20,
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "quadro-cleaner",
-    name: "Quadro All-Purpose Cleaner",
-    description:
-      "Versatile all-purpose cleaner that can be used on various surfaces including floors, walls, and countertops. Safe and effective.",
-    price: 150,
-    imageUrl: "/cleaning products.jpg",
-    category: "All-Purpose",
-    stock: 35,
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "stratus-disinfectant",
-    name: "Stratus Disinfectant Fogging Solution",
-    description:
-      "Professional disinfectant solution designed for fogging applications. Kills bacteria and viruses effectively in large spaces.",
-    price: 300,
-    imageUrl: "/cleaning products.jpg",
-    category: "Disinfectant",
-    stock: 15,
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "fabric-conditioner",
-    name: "Fabric Conditioner",
-    description:
-      "Premium fabric conditioner that softens clothes, reduces static, and leaves a long-lasting fresh fragrance on your laundry.",
-    price: 130,
-    imageUrl: "/laundry.png",
-    category: "Laundry Care",
-    stock: 40,
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-  {
-    id: "powder-detergent",
-    name: "Laundry Powder Detergent",
-    description:
-      "Concentrated powder detergent that provides excellent cleaning power for all types of fabrics. Economical and effective.",
-    price: 160,
-    imageUrl: "/laundry.png",
-    category: "Laundry",
-    stock: 28,
-    isActive: true,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  },
-];
+import { createClient } from "@supabase/supabase-js";
 
 export async function GET(req: Request) {
   try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+    const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+
+    if (!supabaseUrl || !supabaseServiceRoleKey) {
+      throw new Error(
+        "Missing environment variables for Supabase admin client"
+      );
+    }
+
+    const adminSupabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
+      auth: {
+        persistSession: false,
+      },
+    });
+
     const { searchParams } = new URL(req.url);
     const category = searchParams.get("category");
     const search = searchParams.get("search");
     const sortBy = searchParams.get("sortBy") || "name";
     const sortOrder = searchParams.get("sortOrder") || "asc";
 
-    let filteredProducts = [...products];
+    // Fetch products from Supabase
+    let query = adminSupabase.from("products").select("*").eq("isActive", true);
 
     // Filter by category
     if (category) {
-      filteredProducts = filteredProducts.filter(
-        (product) => product.category.toLowerCase() === category.toLowerCase()
+      query = query.eq("category", category);
+    }
+
+    const { data: products, error: productsError } = await query;
+
+    if (productsError) {
+      console.error("Error fetching products:", productsError);
+      return NextResponse.json(
+        { error: productsError.message },
+        { status: 500 }
       );
     }
+
+    if (!products) {
+      return NextResponse.json([]);
+    }
+
+    let filteredProducts = [...products];
 
     // Filter by search
     if (search) {
       const searchLower = search.toLowerCase();
       filteredProducts = filteredProducts.filter(
         (product) =>
-          product.name.toLowerCase().includes(searchLower) ||
-          product.description.toLowerCase().includes(searchLower)
+          product.name?.toLowerCase().includes(searchLower) ||
+          product.description?.toLowerCase().includes(searchLower)
       );
     }
 
@@ -159,8 +70,8 @@ export async function GET(req: Request) {
         valA = a.price;
         valB = b.price;
       } else if (sortBy === "createdAt") {
-        valA = new Date(a.createdAt).getTime();
-        valB = new Date(b.createdAt).getTime();
+        valA = new Date(a.createdAt || 0).getTime();
+        valB = new Date(b.createdAt || 0).getTime();
       }
 
       if (valA === null && valB === null) return 0;
