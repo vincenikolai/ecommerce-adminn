@@ -160,12 +160,8 @@ export async function GET(req: Request) {
       );
     }
 
-    if (!purchaseQuotations) {
-      purchaseQuotations = [];
-    }
-
     // The eager loading in the initial select should handle materials and suppliers
-    let fullPurchaseQuotations = purchaseQuotations;
+    let fullPurchaseQuotations = purchaseQuotations || [];
 
     // Removed manual processing of suppliers and materials as they are now eager loaded.
     // No need to map again unless specific transformations are required which are not covered by the select.
