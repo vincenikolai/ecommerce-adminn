@@ -81,10 +81,74 @@ export async function GET(req: Request) {
 
     console.log("Fetching raw materials from Supabase...");
     try {
+      // First, fetch products from products table
+      const { data: products, error: productsError } = await localAdminSupabase
+        .from("products")
+        .select(`id, name, category, stock, createdAt, updatedAt, supplierid`);
+
+      if (productsError) {
+        console.error("Error fetching products:", productsError);
+      }
+
+      // Sync products into RawMaterial table
+      if (products && products.length > 0) {
+        console.log(`Syncing ${products.length} products to RawMaterial table...`);
+        
+        for (const product of products) {
+          // Check if product already exists in RawMaterial
+          const { data: existingMaterial } = await localAdminSupabase
+            .from("RawMaterial")
+            .select("id")
+            .eq("id", product.id)
+            .single();
+
+          if (!existingMaterial) {
+            // Insert new product as finished product in RawMaterial
+            const { error: insertError } = await localAdminSupabase
+              .from("RawMaterial")
+              .insert({
+                id: product.id,
+                name: product.name,
+                category: product.category,
+                materialType: 'Finished Product',
+                unitOfMeasure: 'unit',
+                stock: product.stock,
+                defaultSupplierId: product.supplierid,
+              });
+
+            if (insertError) {
+              console.error(`Error inserting product ${product.id} into RawMaterial:`, insertError);
+            } else {
+              console.log(`Inserted product ${product.id} (${product.name}) into RawMaterial`);
+            }
+          } else {
+            // Update existing record to ensure it's marked as Finished Product
+            const { error: updateError } = await localAdminSupabase
+              .from("RawMaterial")
+              .update({
+                name: product.name,
+                category: product.category,
+                materialType: 'Finished Product',
+                unitOfMeasure: 'unit',
+                stock: product.stock,
+                defaultSupplierId: product.supplierid,
+              })
+              .eq("id", product.id);
+
+            if (updateError) {
+              console.error(`Error updating product ${product.id} in RawMaterial:`, updateError);
+            } else {
+              console.log(`Updated product ${product.id} (${product.name}) in RawMaterial`);
+            }
+          }
+        }
+      }
+
+      // Now fetch all raw materials (including synced products)
       const { data: rawMaterials, error } = await localAdminSupabase
         .from("RawMaterial")
         .select(
-          `id, name, category, unitOfMeasure, stock, createdAt, updatedAt, defaultSupplier:supplier_management_items(id, name, supplier_shop)`
+          `id, name, category, materialType, unitOfMeasure, stock, createdAt, updatedAt, defaultSupplier:supplier_management_items(id, name, supplier_shop)`
         );
 
       if (error) {
@@ -92,13 +156,9 @@ export async function GET(req: Request) {
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
 
-      if (!rawMaterials) {
-        return NextResponse.json([]);
-      }
+      console.log("API Route - RawMaterial Data (including synced products):", rawMaterials);
 
-      console.log("API Route - RawMaterial Data:", rawMaterials);
-
-      return NextResponse.json(rawMaterials);
+      return NextResponse.json(rawMaterials || []);
     } catch (error: unknown) {
       console.error("API Route - Unexpected error in raw material list API:", error);
       return NextResponse.json(

@@ -186,6 +186,7 @@ export default function RawMaterialManagerPage() {
               <tr>
                 <th className="py-2 px-4 border-b text-left">Material Name</th>
                 <th className="py-2 px-4 border-b text-left">Category/Type</th>
+                <th className="py-2 px-4 border-b text-left">Material Type</th>
                 <th className="py-2 px-4 border-b text-left">Unit of Measure</th>
                 <th className="py-2 px-4 border-b text-left">Current Stock</th>
                 <th className="py-2 px-4 border-b text-left">Default Supplier</th>
@@ -197,6 +198,7 @@ export default function RawMaterialManagerPage() {
                 <tr key={rawMaterial.id} className="hover:bg-gray-50">
                   <td className="py-2 px-4 border-b">{rawMaterial.name}</td>
                   <td className="py-2 px-4 border-b">{rawMaterial.category}</td>
+                  <td className="py-2 px-4 border-b">{rawMaterial.materialType || 'Raw Material'}</td>
                   <td className="py-2 px-4 border-b">{rawMaterial.unitOfMeasure}</td>
                   <td className="py-2 px-4 border-b">{rawMaterial.stock}</td>
                   <td className="py-2 px-4 border-b">{rawMaterial.defaultSupplier?.supplier_shop || 'N/A'}</td>

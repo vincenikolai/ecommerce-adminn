@@ -1,253 +1,221 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { useEffect, useState } from 'react';
+import { createClientComponentClient, Session } from '@supabase/auth-helpers-nextjs';
+import toast from 'react-hot-toast';
+import { UserProfile, UserRole } from '@/types/user';
+import { Order, OrderStatusHistory } from '@/types/order';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Eye,
-  CheckCircle,
-  XCircle,
-  Package,
-  Users,
-  DollarSign,
-} from "lucide-react";
-import { Order, OrderStatus } from "@/types/order";
-import { toast } from "react-hot-toast";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
+const ORDER_MANAGER_ROLE: UserRole = "order_manager";
 
 export default function OrderManagerPage() {
+  const [session, setSession] = useState<Session | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [sortBy, setSortBy] = useState<string>("createdAt");
-  const [sortOrder, setSortOrder] = useState<string>("desc");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  const [userRole, setUserRole] = useState<UserProfile["role"] | null>(null);
+  const supabase = createClientComponentClient();
+  
+  // Filters and sorting
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<'createdAt' | 'orderNumber' | 'customerName' | 'totalAmount'>('createdAt');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  // Status history modal
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [statusHistory, setStatusHistory] = useState<OrderStatusHistory[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
   useEffect(() => {
-    fetchOrders();
-  }, [statusFilter, sortBy, sortOrder, page]);
+    const getSessionAndRole = async () => {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      if (sessionError) {
+        console.error("Session error:", sessionError);
+        toast.error("Error fetching session: " + sessionError.message);
+        setIsLoading(false);
+        return;
+      }
+      setSession(session);
+
+      if (session?.user?.id) {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', session.user.id)
+          .single();
+
+        if (profileError) {
+          console.error("Error fetching profile:", profileError);
+          toast.error("Error fetching user role: " + profileError.message);
+        } else if (profile) {
+          setUserRole(profile.role);
+        }
+      }
+      setIsLoading(false);
+    };
+
+    getSessionAndRole();
+  }, [supabase.auth]);
 
   const fetchOrders = async () => {
+    setIsLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (statusFilter !== "all") {
-        params.append("status", statusFilter);
+      const params = new URLSearchParams({
+        status: statusFilter,
+        sortBy: sortBy,
+        sortOrder: sortOrder,
+      }).toString();
+      
+      const response = await fetch(`/api/admin/orders/list?${params}`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to fetch orders");
       }
-      params.append("sortBy", sortBy);
-      params.append("sortOrder", sortOrder);
-      params.append("page", page.toString());
-      params.append("limit", "10");
-
-      const response = await fetch(`/api/admin/orders?${params.toString()}`);
-      if (response.ok) {
-        const data = await response.json();
-        setOrders(data.orders);
-        setTotalPages(data.totalPages);
-      } else {
-        console.error("Failed to fetch orders");
-      }
-    } catch (error) {
-      console.error("Error fetching orders:", error);
+      const data: Order[] = await response.json();
+      setOrders(data);
+    } catch (error: unknown) {
+      console.error("Error in fetchOrders:", error);
+      toast.error("Error: " + (error instanceof Error ? error.message : "An unknown error occurred"));
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const updateOrderStatus = async (
-    orderId: string,
-    status: OrderStatus,
-    notes?: string
-  ) => {
+  useEffect(() => {
+    if (session && userRole === ORDER_MANAGER_ROLE) {
+      fetchOrders();
+    }
+  }, [session, userRole, statusFilter, sortBy, sortOrder]);
+
+  const handleStatusChange = async (orderId: string, newStatus: string) => {
     try {
-      const response = await fetch(`/api/admin/orders/${orderId}`, {
-        method: "PATCH",
+      const response = await fetch("/api/admin/orders/update-status", {
+        method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          status,
-          notes,
-        }),
+        body: JSON.stringify({ orderId, newStatus }),
       });
 
-      if (response.ok) {
-        toast.success("Order status updated successfully");
-        fetchOrders(); // Refresh orders
-      } else {
-        const error = await response.json();
-        toast.error(error.error || "Failed to update order status");
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to update order status");
       }
-    } catch (error) {
+
+      toast.success("Order status updated successfully!");
+      fetchOrders(); // Refresh the list
+    } catch (error: unknown) {
       console.error("Error updating order status:", error);
-      toast.error("Failed to update order status");
+      toast.error("Error: " + (error instanceof Error ? error.message : "An unknown error occurred"));
     }
   };
 
-  const getStatusColor = (status: OrderStatus) => {
+  const viewStatusHistory = async (order: Order) => {
+    setSelectedOrder(order);
+    setShowHistoryModal(true);
+    setIsLoadingHistory(true);
+
+    try {
+      const response = await fetch(`/api/admin/orders/${order.id}/history`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to fetch status history");
+      }
+      const data: OrderStatusHistory[] = await response.json();
+      setStatusHistory(data);
+    } catch (error: unknown) {
+      console.error("Error fetching status history:", error);
+      toast.error("Error: " + (error instanceof Error ? error.message : "An unknown error occurred"));
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  const getStatusBadgeColor = (status: string) => {
     switch (status) {
-      case "Pending":
-        return "bg-yellow-100 text-yellow-800";
-      case "Confirmed":
-        return "bg-blue-100 text-blue-800";
-      case "Processing":
-        return "bg-purple-100 text-purple-800";
-      case "Shipped":
-        return "bg-indigo-100 text-indigo-800";
-      case "Delivered":
-        return "bg-green-100 text-green-800";
-      case "Cancelled":
-        return "bg-red-100 text-red-800";
-      case "Refunded":
-        return "bg-gray-100 text-gray-800";
+      case 'Pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'Processing':
+        return 'bg-blue-100 text-blue-800';
+      case 'Completed':
+        return 'bg-green-100 text-green-800';
+      case 'Cancelled':
+        return 'bg-red-100 text-red-800';
       default:
-        return "bg-gray-100 text-gray-800";
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
+    return new Date(dateString).toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
     });
   };
 
-  const filteredOrders = orders.filter(
-    (order) =>
-      searchTerm === "" ||
-      order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customerEmail.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  if (isLoading) {
+    return <div className="p-6">Loading order data...</div>;
+  }
 
-  if (loading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-        </div>
-      </div>
-    );
+  if (!session || userRole !== ORDER_MANAGER_ROLE) {
+    return <div className="p-6 text-red-500">Access Denied: You do not have "Order Manager" privileges to view this page.</div>;
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Order Management</h1>
-      </div>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-6">Order Management</h1>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <Card className="p-6">
-          <div className="flex items-center">
-            <Package className="h-8 w-8 text-blue-600" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Orders</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {orders.length}
-              </p>
-            </div>
-          </div>
-        </Card>
-        <Card className="p-6">
-          <div className="flex items-center">
-            <CheckCircle className="h-8 w-8 text-green-600" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">
-                Pending Orders
-              </p>
-              <p className="text-2xl font-bold text-gray-900">
-                {orders.filter((o) => o.status === "Pending").length}
-              </p>
-            </div>
-          </div>
-        </Card>
-        <Card className="p-6">
-          <div className="flex items-center">
-            <Users className="h-8 w-8 text-purple-600" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Processing</p>
-              <p className="text-2xl font-bold text-gray-900">
-                {orders.filter((o) => o.status === "Processing").length}
-              </p>
-            </div>
-          </div>
-        </Card>
-        <Card className="p-6">
-          <div className="flex items-center">
-            <DollarSign className="h-8 w-8 text-green-600" />
-            <div className="ml-4">
-              <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-              <p className="text-2xl font-bold text-gray-900">
-                $
-                {orders
-                  .reduce((sum, order) => sum + order.totalAmount, 0)
-                  .toFixed(2)}
-              </p>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      {/* Filters */}
+      {/* Filters and Sorting */}
       <div className="flex flex-wrap gap-4 mb-6">
-        <div className="flex items-center space-x-2">
-          <Input
-            placeholder="Search orders..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-64"
-          />
-        </div>
-        <div className="flex items-center space-x-2">
-          <label className="text-sm font-medium text-gray-700">Status:</label>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
+        <div>
+          <Label htmlFor="statusFilter">Filter by Status</Label>
+          <Select onValueChange={setStatusFilter} value={statusFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="All Orders" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Orders</SelectItem>
               <SelectItem value="Pending">Pending</SelectItem>
-              <SelectItem value="Confirmed">Confirmed</SelectItem>
               <SelectItem value="Processing">Processing</SelectItem>
-              <SelectItem value="Shipped">Shipped</SelectItem>
-              <SelectItem value="Delivered">Delivered</SelectItem>
+              <SelectItem value="Completed">Completed</SelectItem>
               <SelectItem value="Cancelled">Cancelled</SelectItem>
-              <SelectItem value="Refunded">Refunded</SelectItem>
             </SelectContent>
           </Select>
         </div>
-        <div className="flex items-center space-x-2">
-          <label className="text-sm font-medium text-gray-700">Sort by:</label>
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
+
+        <div>
+          <Label htmlFor="sortBy">Sort By</Label>
+          <Select onValueChange={(value: any) => setSortBy(value)} value={sortBy}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="createdAt">Date</SelectItem>
-              <SelectItem value="totalAmount">Amount</SelectItem>
-              <SelectItem value="status">Status</SelectItem>
-              <SelectItem value="customerName">Customer</SelectItem>
+              <SelectItem value="createdAt">Date Created</SelectItem>
+              <SelectItem value="orderNumber">Order Number</SelectItem>
+              <SelectItem value="customerName">Customer Name</SelectItem>
+              <SelectItem value="totalAmount">Total Amount</SelectItem>
             </SelectContent>
           </Select>
         </div>
-        <div className="flex items-center space-x-2">
-          <label className="text-sm font-medium text-gray-700">Order:</label>
-          <Select value={sortOrder} onValueChange={setSortOrder}>
-            <SelectTrigger className="w-32">
-              <SelectValue />
+
+        <div>
+          <Label htmlFor="sortOrder">Sort Order</Label>
+          <Select onValueChange={(value: 'asc' | 'desc') => setSortOrder(value)} value={sortOrder}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Sort order" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="desc">Newest First</SelectItem>
@@ -257,144 +225,148 @@ export default function OrderManagerPage() {
         </div>
       </div>
 
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white p-4 rounded-lg shadow border">
+          <p className="text-sm text-gray-600">Total Orders</p>
+          <p className="text-2xl font-bold">{orders.length}</p>
+        </div>
+        <div className="bg-yellow-50 p-4 rounded-lg shadow border border-yellow-200">
+          <p className="text-sm text-yellow-800">Pending</p>
+          <p className="text-2xl font-bold text-yellow-900">
+            {orders.filter(o => o.status === 'Pending').length}
+          </p>
+        </div>
+        <div className="bg-blue-50 p-4 rounded-lg shadow border border-blue-200">
+          <p className="text-sm text-blue-800">Processing</p>
+          <p className="text-2xl font-bold text-blue-900">
+            {orders.filter(o => o.status === 'Processing').length}
+          </p>
+        </div>
+        <div className="bg-green-50 p-4 rounded-lg shadow border border-green-200">
+          <p className="text-sm text-green-800">Completed</p>
+          <p className="text-2xl font-bold text-green-900">
+            {orders.filter(o => o.status === 'Completed').length}
+          </p>
+        </div>
+      </div>
+
       {/* Orders Table */}
-      <Card className="overflow-hidden">
+      {orders.length === 0 ? (
+        <p>No orders found.</p>
+      ) : (
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Order
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Customer
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Total
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
+          <table className="min-w-full bg-white border border-gray-200">
+            <thead>
+              <tr className="bg-gray-50">
+                <th className="py-3 px-4 border-b text-left font-semibold">Order #</th>
+                <th className="py-3 px-4 border-b text-left font-semibold">Customer</th>
+                <th className="py-3 px-4 border-b text-left font-semibold">Date</th>
+                <th className="py-3 px-4 border-b text-left font-semibold">Total</th>
+                <th className="py-3 px-4 border-b text-left font-semibold">Status</th>
+                <th className="py-3 px-4 border-b text-left font-semibold">Actions</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredOrders.map((order) => (
+            <tbody>
+              {orders.map((order) => (
                 <tr key={order.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        #{order.orderNumber}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {order.items.length} item
-                        {order.items.length !== 1 ? "s" : ""}
-                      </div>
-                    </div>
+                  <td className="py-3 px-4 border-b">
+                    <div className="font-medium">{order.orderNumber}</div>
+                    <div className="text-xs text-gray-500">{order.id.substring(0, 8)}...</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        {order.customerName}
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {order.customerEmail}
-                      </div>
-                    </div>
+                  <td className="py-3 px-4 border-b">
+                    <div className="font-medium">{order.customerName}</div>
+                    <div className="text-xs text-gray-500">{order.customerEmail}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <Badge className={getStatusColor(order.status)}>
-                      {order.status}
-                    </Badge>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ${order.totalAmount.toFixed(2)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="py-3 px-4 border-b text-sm">
                     {formatDate(order.createdAt)}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() =>
-                          window.open(`/orders/${order.id}`, "_blank")
-                        }
-                      >
-                        <Eye className="h-4 w-4 mr-1" />
-                        View
-                      </Button>
-                      {order.status === "Pending" && (
-                        <Button
-                          size="sm"
-                          onClick={() =>
-                            updateOrderStatus(order.id, "Confirmed")
-                          }
-                        >
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          Approve
-                        </Button>
-                      )}
-                      {order.status === "Confirmed" && (
-                        <Button
-                          size="sm"
-                          onClick={() =>
-                            updateOrderStatus(order.id, "Processing")
-                          }
-                        >
-                          <Package className="h-4 w-4 mr-1" />
-                          Process
-                        </Button>
-                      )}
-                      {order.status === "Processing" && (
-                        <Button
-                          size="sm"
-                          onClick={() => updateOrderStatus(order.id, "Shipped")}
-                        >
-                          <Package className="h-4 w-4 mr-1" />
-                          Ship
-                        </Button>
-                      )}
-                    </div>
+                  <td className="py-3 px-4 border-b font-medium">
+                    ₱{order.totalAmount.toFixed(2)}
+                  </td>
+                  <td className="py-3 px-4 border-b">
+                    <Select
+                      value={order.status}
+                      onValueChange={(newStatus) => handleStatusChange(order.id, newStatus)}
+                    >
+                      <SelectTrigger className={`w-[140px] ${getStatusBadgeColor(order.status)}`}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Pending">Pending</SelectItem>
+                        <SelectItem value="Processing">Processing</SelectItem>
+                        <SelectItem value="Completed">Completed</SelectItem>
+                        <SelectItem value="Cancelled">Cancelled</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </td>
+                  <td className="py-3 px-4 border-b">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => viewStatusHistory(order)}
+                    >
+                      View History
+                    </Button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </Card>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="flex justify-center mt-6">
-          <div className="flex space-x-2">
-            <Button
-              variant="outline"
-              onClick={() => setPage(page - 1)}
-              disabled={page === 1}
-            >
-              Previous
-            </Button>
-            <span className="flex items-center px-4 py-2 text-sm text-gray-700">
-              Page {page} of {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              onClick={() => setPage(page + 1)}
-              disabled={page === totalPages}
-            >
-              Next
-            </Button>
-          </div>
-        </div>
       )}
+
+      {/* Status History Modal */}
+      <Dialog open={showHistoryModal} onOpenChange={setShowHistoryModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Order Status History</DialogTitle>
+            <DialogDescription>
+              {selectedOrder && `Order #${selectedOrder.orderNumber}`}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {isLoadingHistory ? (
+            <div className="py-8 text-center">Loading history...</div>
+          ) : statusHistory.length === 0 ? (
+            <div className="py-8 text-center text-gray-500">No status changes recorded yet.</div>
+          ) : (
+            <div className="space-y-4 max-h-[400px] overflow-y-auto">
+              {statusHistory.map((history, index) => (
+                <div key={history.id} className="flex items-start gap-4 pb-4 border-b last:border-b-0">
+                  <div className="flex-shrink-0 w-2 h-2 mt-2 rounded-full bg-blue-500"></div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      {history.oldstatus && (
+                        <>
+                          <span className={`px-2 py-1 rounded text-xs ${getStatusBadgeColor(history.oldstatus)}`}>
+                            {history.oldstatus}
+                          </span>
+                          <span className="text-gray-400">→</span>
+                        </>
+                      )}
+                      <span className={`px-2 py-1 rounded text-xs ${getStatusBadgeColor(history.newstatus)}`}>
+                        {history.newstatus}
+                      </span>
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      Changed by: <span className="font-medium">{history.changedby}</span>
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {formatDate(history.changedat)}
+                    </div>
+                    {history.notes && (
+                      <div className="mt-2 text-sm text-gray-700 bg-gray-50 p-2 rounded">
+                        {history.notes}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
-

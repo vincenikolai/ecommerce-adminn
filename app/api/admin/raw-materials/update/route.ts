@@ -54,7 +54,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Access Denied: Insufficient privileges for Raw Material Manager." }, { status: 403 });
     }
 
-    const { id, name, category, unitOfMeasure, stock, defaultSupplierId } = await req.json() as RawMaterial;
+    const { id, name, category, materialType, unitOfMeasure, stock, defaultSupplierId } = await req.json() as RawMaterial;
 
     if (!id || !name || !category || !unitOfMeasure || stock === undefined) {
       return NextResponse.json({ error: "Raw material ID, name, category, unit of measure, and stock are required." }, { status: 400 });
@@ -62,7 +62,7 @@ export async function POST(req: Request) {
 
     const { data, error: updateError } = await localAdminSupabase
       .from('RawMaterial')
-      .update({ name, category, unitOfMeasure, stock, defaultSupplierId })
+      .update({ name, category, materialType, unitOfMeasure, stock, defaultSupplierId })
       .eq('id', id)
       .select();
 

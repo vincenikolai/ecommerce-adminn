@@ -8,7 +8,8 @@ const ADMIN_EMAIL = "eastlachemicals@gmail.com"; // Ensure this matches your adm
 
 export async function POST(req: Request) {
   try {
-    const authClient = createRouteHandlerClient({ cookies });
+    const cookieStore = cookies();
+    const authClient = createRouteHandlerClient({ cookies: () => cookieStore });
     const { data: { session }, error: sessionError } = await authClient.auth.getSession();
 
     if (sessionError) {

@@ -10,18 +10,22 @@ const SALES_QUOTATION_MANAGER_ROLE: UserRole = "sales_quotation_manager"; // Def
 // Define all roles that an admin is allowed to assign
 const ALLOWED_ROLES: UserRole[] = [
   "customer",
-  "admin", // Assuming 'admin' is a role that can be assigned
+  "admin",
   "purchasing_manager",
   "warehouse_staff",
   "raw_material_manager",
   "finance_manager",
-  "supplier_management_manager", // Add existing roles
-  SALES_QUOTATION_MANAGER_ROLE, // Add the new sales quotation manager role
+  "supplier_management_manager",
+  "sales_quotation_manager",
+  "order_manager",
+  "production_manager",
+  "sales_staff",
 ];
 
 export async function POST(req: Request) {
   try {
-    const authClient = createRouteHandlerClient({ cookies });
+    const cookieStore = cookies();
+    const authClient = createRouteHandlerClient({ cookies: () => cookieStore });
     const { data: { session }, error: sessionError } = await authClient.auth.getSession();
 
     if (sessionError) {

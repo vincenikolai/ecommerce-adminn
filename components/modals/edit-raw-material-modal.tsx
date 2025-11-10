@@ -25,6 +25,7 @@ interface EditRawMaterialModalProps {
 export const EditRawMaterialModal: React.FC<EditRawMaterialModalProps> = ({ isOpen, onClose, rawMaterial, onRawMaterialUpdated }) => {
   const [name, setName] = useState(rawMaterial.name);
   const [category, setCategory] = useState(rawMaterial.category || "");
+  const [materialType, setMaterialType] = useState(rawMaterial.materialType || "Raw Material");
   const [unitOfMeasure, setUnitOfMeasure] = useState(rawMaterial.unitOfMeasure || "");
   const [stock, setStock] = useState<number>(rawMaterial.stock);
   const [defaultSupplierId, setDefaultSupplierId] = useState<string | null>(rawMaterial.defaultSupplierId || null);
@@ -35,6 +36,7 @@ export const EditRawMaterialModal: React.FC<EditRawMaterialModalProps> = ({ isOp
     if (rawMaterial) {
       setName(rawMaterial.name);
       setCategory(rawMaterial.category || "");
+      setMaterialType(rawMaterial.materialType || "Raw Material");
       setUnitOfMeasure(rawMaterial.unitOfMeasure || "");
       setStock(rawMaterial.stock);
       setDefaultSupplierId(rawMaterial.defaultSupplierId || null);
@@ -70,7 +72,7 @@ export const EditRawMaterialModal: React.FC<EditRawMaterialModalProps> = ({ isOp
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ id: rawMaterial.id, name, category, unitOfMeasure, stock, defaultSupplierId }),
+        body: JSON.stringify({ id: rawMaterial.id, name, category, materialType, unitOfMeasure, stock, defaultSupplierId }),
       });
 
       if (!response.ok) {
@@ -123,6 +125,20 @@ export const EditRawMaterialModal: React.FC<EditRawMaterialModalProps> = ({ isOp
               required
               className="col-span-2"
             />
+          </div>
+          <div className="grid grid-cols-3 items-center gap-4">
+            <Label htmlFor="editMaterialType" className="text-left">
+              Material Type
+            </Label>
+            <Select onValueChange={(value) => setMaterialType(value)} value={materialType} required>
+              <SelectTrigger className="col-span-2">
+                <SelectValue placeholder="Select type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Finished Product">Finished Product</SelectItem>
+                <SelectItem value="Raw Material">Raw Material</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div className="grid grid-cols-3 items-center gap-4">
             <Label htmlFor="editUnitOfMeasure" className="text-left">
