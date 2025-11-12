@@ -81,28 +81,22 @@ export default function OrdersPage() {
     }
   };
 
-  const getStatusColor = (status: OrderStatus) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case "Pending":
         return "bg-yellow-100 text-yellow-800";
-      case "Confirmed":
-        return "bg-blue-100 text-blue-800";
-      case "Processing":
+      case "Paid":
         return "bg-purple-100 text-purple-800";
-      case "Shipped":
-        return "bg-indigo-100 text-indigo-800";
-      case "Delivered":
+      case "Completed":
         return "bg-green-100 text-green-800";
       case "Cancelled":
         return "bg-red-100 text-red-800";
-      case "Refunded":
-        return "bg-gray-100 text-gray-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
   };
 
-  const canCancelOrder = (status: OrderStatus) => {
+  const canCancelOrder = (status: string) => {
     return status === "Pending";
   };
 
@@ -146,12 +140,9 @@ export default function OrdersPage() {
             <SelectContent>
               <SelectItem value="all">All Orders</SelectItem>
               <SelectItem value="Pending">Pending</SelectItem>
-              <SelectItem value="Confirmed">Confirmed</SelectItem>
-              <SelectItem value="Processing">Processing</SelectItem>
-              <SelectItem value="Shipped">Shipped</SelectItem>
-              <SelectItem value="Delivered">Delivered</SelectItem>
+              <SelectItem value="Paid">Paid</SelectItem>
+              <SelectItem value="Completed">Completed</SelectItem>
               <SelectItem value="Cancelled">Cancelled</SelectItem>
-              <SelectItem value="Refunded">Refunded</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -240,7 +231,7 @@ export default function OrdersPage() {
                 <div>
                   <p className="text-sm font-medium text-gray-700">Total</p>
                   <p className="text-sm text-gray-600">
-                    ${order.totalAmount.toFixed(2)}
+                    ${(order.totalAmount || 0).toFixed(2)}
                   </p>
                 </div>
                 <div>
@@ -253,11 +244,7 @@ export default function OrdersPage() {
                 <div className="text-sm text-gray-600">
                   <p>
                     <span className="font-medium">Delivery:</span>{" "}
-                    {order.deliveryMethod}
-                  </p>
-                  <p>
-                    <span className="font-medium">Status:</span>{" "}
-                    {order.deliveryStatus}
+                    {order.deliveryMethod || 'Standard'}
                   </p>
                 </div>
                 <Button

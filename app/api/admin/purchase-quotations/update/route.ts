@@ -3,13 +3,12 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { UserProfile, UserRole } from '@/types/user';
-import { PurchaseQuotation } from '@/types/purchase-quotation';
-import { v4 as uuidv4 } from 'uuid'; // Import uuid
+import { v4 as uuidv4 } from 'uuid';
 
 const ADMIN_EMAIL = "eastlachemicals@gmail.com";
-const SALES_QUOTATION_MANAGER_ROLE: UserRole = "sales_quotation_manager"; // Renamed role constant
+const SALES_MANAGER_ROLE: UserRole = "sales_manager";
 
-export async function POST(req: Request) {
+export async function PATCH(req: Request) {
   let supabaseUrl = '';
   let supabaseServiceRoleKey = '';
 
@@ -27,7 +26,8 @@ export async function POST(req: Request) {
       },
     });
 
-    const authClient = createRouteHandlerClient({ cookies });
+    const cookieStore = cookies();
+    const authClient = createRouteHandlerClient({ cookies: () => cookieStore });
     const { data: { session }, error: sessionError } = await authClient.auth.getSession();
 
     if (sessionError) {
@@ -52,93 +52,128 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: profileError.message }, { status: 500 });
     }
 
-    if (!profile || (profile.role !== SALES_QUOTATION_MANAGER_ROLE && session.user?.email !== ADMIN_EMAIL)) {
-      console.error("API Route - Access Denied: Insufficient privileges for Sales Quotation Manager.");
-      return NextResponse.json({ error: "Access Denied: Insufficient privileges for Sales Quotation Manager." }, { status: 403 });
+    if (!profile || (profile.role !== SALES_MANAGER_ROLE && session.user?.email !== ADMIN_EMAIL)) {
+      console.error("API Route - Access Denied: Insufficient privileges for Sales Manager.");
+      return NextResponse.json({ error: "Access Denied: Insufficient privileges for Sales Manager." }, { status: 403 });
     }
 
-    const { id, supplierId, quotedPrice, validityDate, materials } = await req.json() as PurchaseQuotation & { materials: Array<{ rawMaterialId: string; quantity: number }> };
+    const { searchParams } = new URL(req.url);
+    const id = searchParams.get("id");
 
-    if (!id || !supplierId || quotedPrice === undefined || !validityDate || !materials || materials.length === 0) {
-      return NextResponse.json({ error: "Purchase quotation ID, supplier, quoted price, validity date, and at least one material are required." }, { status: 400 });
+    if (!id) {
+      return NextResponse.json({ error: "Order ID is required." }, { status: 400 });
     }
 
-    // Update PurchaseQuotation
-    const { data: quotationData, error: updateQuotationError } = await localAdminSupabase
+    const body = await req.json();
+    const {
+      customerName,
+      customerEmail,
+      customerPhone,
+      shippingAddress,
+      billingAddress,
+      paymentMethod,
+      deliveryMethod,
+      totalAmount,
+      taxAmount,
+      shippingAmount,
+      notes,
+      status,
+      items,
+    } = body;
+
+    if (!customerName || !customerEmail || !shippingAddress || !billingAddress || !paymentMethod || !deliveryMethod || totalAmount === undefined || !items || items.length === 0) {
+      return NextResponse.json({ error: "Customer name, email, addresses, payment method, delivery method, total amount, and at least one item are required." }, { status: 400 });
+    }
+
+    // Update PurchaseQuotation (customer order)
+    const { data: orderData, error: updateOrderError } = await localAdminSupabase
       .from('PurchaseQuotation')
-      .update({ supplierId, quotedPrice, validityDate })
+      .update({
+        customerName,
+        customerEmail,
+        customerPhone: customerPhone || null,
+        shippingAddress,
+        billingAddress,
+        paymentMethod,
+        deliveryMethod,
+        totalAmount,
+        taxAmount: taxAmount || 0,
+        shippingAmount: shippingAmount || 0,
+        notes: notes || null,
+        status: status || 'Quoted',
+        quotedPrice: totalAmount, // Keep for backward compatibility
+        updatedAt: new Date().toISOString(),
+      })
       .eq('id', id)
-      .select();
+      .select()
+      .single();
 
-    if (updateQuotationError) {
-      console.error("API Route - Error updating purchase quotation:", updateQuotationError);
-      return NextResponse.json({ error: updateQuotationError.message }, { status: 500 });
+    if (updateOrderError) {
+      console.error("API Route - Error updating customer order:", updateOrderError);
+      return NextResponse.json({ error: updateOrderError.message }, { status: 500 });
     }
 
-    if (!quotationData || quotationData.length === 0) {
-        return NextResponse.json({ error: "Purchase quotation not found or no changes made." }, { status: 404 });
+    if (!orderData) {
+      return NextResponse.json({ error: "Customer order not found or no changes made." }, { status: 404 });
     }
 
-    // Handle materials update: This is more complex than simple update.
-    // A common strategy is to delete existing materials for this quotation and then re-insert new ones.
-    // Alternatively, fetch existing, compare, and then perform inserts/updates/deletes.
-    // For simplicity, let's delete all and re-insert.
-
-    const { error: deleteMaterialsError } = await localAdminSupabase
-      .from('PurchaseQuotationMaterial')
+    // Delete existing items and re-insert new ones
+    const { error: deleteItemsError } = await localAdminSupabase
+      .from('PurchaseQuotationItem')
       .delete()
       .eq('purchaseQuotationId', id);
 
-    if (deleteMaterialsError) {
-      console.error("API Route - Error deleting old quotation materials:", deleteMaterialsError);
-      // Log but don't necessarily fail the whole request if quotation update was successful
+    if (deleteItemsError) {
+      console.error("API Route - Error deleting old order items:", deleteItemsError);
+      // Log but don't fail the whole request if order update was successful
     }
 
-    const materialInserts = materials.map(mat => ({
-      id: uuidv4(), // Generate UUID for each material item
+    // Insert new items
+    const itemInserts = items.map((item: any) => ({
+      id: uuidv4(),
       purchaseQuotationId: id,
-      rawMaterialId: mat.rawMaterialId,
-      quantity: mat.quantity,
+      productId: item.productId,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      totalPrice: item.totalPrice,
     }));
 
-    const { data: materialData, error: insertMaterialsError } = await localAdminSupabase
-      .from('PurchaseQuotationMaterial')
-      .insert(materialInserts)
+    const { data: itemData, error: insertItemsError } = await localAdminSupabase
+      .from('PurchaseQuotationItem')
+      .insert(itemInserts)
       .select();
 
-    if (insertMaterialsError) {
-      console.error("API Route - Error inserting new quotation materials:", insertMaterialsError);
-      return NextResponse.json({ error: insertMaterialsError.message }, { status: 500 });
+    if (insertItemsError) {
+      console.error("API Route - Error inserting new order items:", insertItemsError);
+      return NextResponse.json({ error: insertItemsError.message }, { status: 500 });
     }
 
-    // Optionally, re-fetch the full quotation with materials to return a complete object
-    const { data: fullQuotation, error: fetchFullQuotationError } = await localAdminSupabase
-        .from('PurchaseQuotation')
-        .select(`
-            id,
-            supplierId,
-            quotedPrice,
-            validityDate,
-            createdAt,
-            updatedAt,
-            materials:PurchaseQuotationMaterial (
-                id,
-                rawMaterialId,
-                quantity
-            )
-        `)
-        .eq('id', id)
-        .single();
+    // Re-fetch the full order with items
+    const { data: fullOrder, error: fetchFullOrderError } = await localAdminSupabase
+      .from('PurchaseQuotation')
+      .select(`
+        *,
+        items:PurchaseQuotationItem(
+          id,
+          productId,
+          quantity,
+          unitPrice,
+          totalPrice,
+          product:products(id, name, price)
+        )
+      `)
+      .eq('id', id)
+      .single();
 
-    if (fetchFullQuotationError) {
-        console.error("API Route - Error fetching full updated quotation:", fetchFullQuotationError);
-        return NextResponse.json({ message: "Sales quotation updated successfully (materials might be incomplete in response)", purchaseQuotation: quotationData[0] });
+    if (fetchFullOrderError) {
+      console.error("API Route - Error fetching full updated order:", fetchFullOrderError);
+      return NextResponse.json({ message: "Customer order updated successfully (items might be incomplete in response)", order: orderData });
     }
 
-    return NextResponse.json({ message: "Sales quotation updated successfully", purchaseQuotation: fullQuotation });
+    return NextResponse.json({ message: "Customer order updated successfully", order: fullOrder });
 
   } catch (error: unknown) {
-    console.error("API Route - Unexpected error in sales quotation update API:", error);
+    console.error("API Route - Unexpected error in customer order update API:", error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Internal Server Error" },
       { status: 500 }

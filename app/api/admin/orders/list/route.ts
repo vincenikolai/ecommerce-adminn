@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import { UserRole } from '@/types/user';
 
 const ADMIN_EMAIL = "eastlachemicals@gmail.com";
-const ORDER_MANAGER_ROLE: UserRole = "order_manager";
+const SALES_MANAGER_ROLE: UserRole = "sales_manager";
 
 export async function GET(req: Request) {
   let supabaseUrl = '';
@@ -50,9 +50,9 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: profileError.message }, { status: 500 });
     }
 
-    if (!profile || (profile.role !== ORDER_MANAGER_ROLE && session.user?.email !== ADMIN_EMAIL)) {
+    if (!profile || (profile.role !== SALES_MANAGER_ROLE && session.user?.email !== ADMIN_EMAIL)) {
       return NextResponse.json(
-        { error: "Access Denied: Insufficient privileges for Order Manager." },
+        { error: "Access Denied: Insufficient privileges for Sales Manager." },
         { status: 403 }
       );
     }

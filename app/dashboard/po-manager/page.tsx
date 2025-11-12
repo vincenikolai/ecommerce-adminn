@@ -24,6 +24,11 @@ export default function POManagerPage() {
   const [suppliers, setSuppliers] = useState<SupplierManagementItem[]>([]);
   const [rawMaterials, setRawMaterials] = useState<RawMaterial[]>([]);
 
+  // Filters and sorting
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<'createdat' | 'poReferenceNumber' | 'deliveryDate' | 'totalAmount'>('createdat');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
   // Form states for creating/editing a purchase order
   const [selectedSupplierid, setSelectedSupplierid] = useState<string | null>(null);
   const [deliveryDate, setDeliveryDate] = useState<string>("");
@@ -136,7 +141,12 @@ export default function POManagerPage() {
   const fetchPurchaseOrders = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch("/api/admin/purchase-orders/list");
+      const params = new URLSearchParams({
+        status: statusFilter,
+        sortBy: sortBy,
+        sortOrder: sortOrder,
+      }).toString();
+      const response = await fetch(`/api/admin/purchase-orders/list?${params}`);
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to fetch purchase orders");
@@ -170,7 +180,7 @@ export default function POManagerPage() {
       fetchPurchaseOrders();
     }
     console.log("useEffect - selectedMaterials (after fetch):", selectedMaterials);
-  }, [session, userRole]);
+  }, [session, userRole, statusFilter, sortBy, sortOrder]);
 
   const handleAddMaterial = (rawmaterialid: string, quantity: number = 1, unitprice: number = 0) => {
     setSelectedMaterials(prev => {
@@ -376,10 +386,54 @@ export default function POManagerPage() {
     return 'Unknown Supplier';
   };
 
+  const formatDate = (dateString: string | null | undefined) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  const formatDateOnly = (dateString: string | null | undefined) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  const getStatusBadgeColor = (status: string) => {
+    switch (status) {
+      case 'Pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'Approved':
+        return 'bg-blue-100 text-blue-800';
+      case 'PartiallyDelivered':
+        return 'bg-orange-100 text-orange-800';
+      case 'Completed':
+        return 'bg-green-100 text-green-800';
+      case 'Cancelled':
+        return 'bg-red-100 text-red-800';
+      case 'Rejected':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  // Filter purchase orders by status
+  const filteredPurchaseOrders = statusFilter === 'all' 
+    ? purchaseOrders 
+    : purchaseOrders.filter(po => po.status === statusFilter);
+
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Purchase Order Management</h1>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Purchase Order Management</h1>
+      </div>
 
       <h2 className="text-xl font-semibold mb-4">{editingPurchaseOrderId ? "Edit Purchase Order" : "Create New Purchase Order"}</h2>
       {suppliersWithRawMaterials.length === 0 && (
@@ -464,7 +518,10 @@ export default function POManagerPage() {
               <SelectContent>
                 <SelectItem value="Pending">Pending</SelectItem>
                 <SelectItem value="Approved">Approved</SelectItem>
-                <SelectItem value="Delivered">Delivered</SelectItem>
+                <SelectItem value="Rejected">Rejected</SelectItem>
+                <SelectItem value="PartiallyDelivered">Partially Delivered</SelectItem>
+                <SelectItem value="Completed">Completed</SelectItem>
+                <SelectItem value="Cancelled">Cancelled</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -552,25 +609,101 @@ export default function POManagerPage() {
         )}
       </form>
 
+      {/* Filters and Sorting */}
+      <div className="flex flex-wrap gap-4 mb-6">
+        <div>
+          <Label htmlFor="statusFilter">Filter by Status</Label>
+          <Select onValueChange={setStatusFilter} value={statusFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="All Orders" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Orders</SelectItem>
+              <SelectItem value="Pending">Pending</SelectItem>
+              <SelectItem value="Approved">Approved</SelectItem>
+              <SelectItem value="Rejected">Rejected</SelectItem>
+              <SelectItem value="PartiallyDelivered">Partially Delivered</SelectItem>
+              <SelectItem value="Completed">Completed</SelectItem>
+              <SelectItem value="Cancelled">Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label htmlFor="sortBy">Sort By</Label>
+          <Select onValueChange={(value: any) => setSortBy(value)} value={sortBy}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="createdat">Date Created</SelectItem>
+              <SelectItem value="poReferenceNumber">PO Number</SelectItem>
+              <SelectItem value="deliveryDate">Delivery Date</SelectItem>
+              <SelectItem value="totalAmount">Total Amount</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div>
+          <Label htmlFor="sortOrder">Sort Order</Label>
+          <Select onValueChange={(value: 'asc' | 'desc') => setSortOrder(value)} value={sortOrder}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Sort order" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="desc">Newest First</SelectItem>
+              <SelectItem value="asc">Oldest First</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white p-4 rounded-lg shadow border">
+          <p className="text-sm text-gray-600">Total Orders</p>
+          <p className="text-2xl font-bold">{purchaseOrders.length}</p>
+        </div>
+        <div className="bg-yellow-50 p-4 rounded-lg shadow border border-yellow-200">
+          <p className="text-sm text-yellow-800">Pending</p>
+          <p className="text-2xl font-bold text-yellow-900">
+            {purchaseOrders.filter(o => o.status === 'Pending').length}
+          </p>
+        </div>
+        <div className="bg-blue-50 p-4 rounded-lg shadow border border-blue-200">
+          <p className="text-sm text-blue-800">Approved</p>
+          <p className="text-2xl font-bold text-blue-900">
+            {purchaseOrders.filter(o => o.status === 'Approved').length}
+          </p>
+        </div>
+        <div className="bg-green-50 p-4 rounded-lg shadow border border-green-200">
+          <p className="text-sm text-green-800">Completed</p>
+          <p className="text-2xl font-bold text-green-900">
+            {purchaseOrders.filter(o => o.status === 'Completed').length}
+          </p>
+        </div>
+      </div>
+
       <h2 className="text-xl font-semibold mb-4 mt-8">Existing Purchase Orders</h2>
-      {purchaseOrders.length === 0 ? (
-        <p>No purchase orders found.</p>
+      {filteredPurchaseOrders.length === 0 ? (
+        <p>{statusFilter === 'all' ? 'No purchase orders found.' : `No ${statusFilter} purchase orders found.`}</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full bg-white border border-gray-200">
             <thead>
-              <tr>
-                <th className="py-2 px-4 border-b text-left">PO Number</th>
-                <th className="py-2 px-4 border-b text-left">Supplier</th>
-                <th className="py-2 px-4 border-b text-left">Delivery Date</th>
-                <th className="py-2 px-4 border-b text-left">Status</th>
-                <th className="py-2 px-4 border-b text-left">Materials</th>
-                <th className="py-2 px-4 border-b text-left">Total Price</th>
-                <th className="py-2 px-4 border-b text-left">Actions</th>
+              <tr className="bg-gray-50">
+                <th className="py-3 px-4 border-b text-left font-semibold">PO Number</th>
+                <th className="py-3 px-4 border-b text-left font-semibold">Supplier</th>
+                <th className="py-3 px-4 border-b text-left font-semibold">Status</th>
+                <th className="py-3 px-4 border-b text-left font-semibold">Order Date</th>
+                <th className="py-3 px-4 border-b text-left font-semibold">Delivery Date</th>
+                <th className="py-3 px-4 border-b text-left font-semibold">Materials</th>
+                <th className="py-3 px-4 border-b text-left font-semibold">Total Price</th>
+                <th className="py-3 px-4 border-b text-left font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {purchaseOrders.map((po) => {
+              {filteredPurchaseOrders.map((po) => {
                 console.log(`DEBUG - Rendering PO ${po.poReferenceNumber}:`, {
                   id: po.id,
                   materials: po.materials,
@@ -580,15 +713,27 @@ export default function POManagerPage() {
                 
                 return (
                   <tr key={po.id} className="hover:bg-gray-50">
-                    <td className="py-2 px-4 border-b">{po.poReferenceNumber}</td>
-                    <td className="py-2 px-4 border-b">
-                      {po.supplier?.company_name || getSupplierName(po.supplierId)}
+                    <td className="py-3 px-4 border-b">
+                      <div className="font-medium">{po.poReferenceNumber}</div>
+                      <div className="text-xs text-gray-500">{po.id.substring(0, 8)}...</div>
                     </td>
-                    <td className="py-2 px-4 border-b">
-                      {po.deliveryDate ? new Date(po.deliveryDate).toLocaleDateString() : 'N/A'}
+                    <td className="py-3 px-4 border-b">
+                      <div className="font-medium">
+                        {po.supplier?.company_name || getSupplierName(po.supplierId)}
+                      </div>
                     </td>
-                    <td className="py-2 px-4 border-b">{po.status || 'Pending'}</td>
-                    <td className="py-2 px-4 border-b">
+                    <td className="py-3 px-4 border-b">
+                      <span className={`px-2 py-1 rounded text-xs ${getStatusBadgeColor(po.status || 'Pending')}`}>
+                        {po.status || 'Pending'}
+                      </span>
+                    </td>
+                    <td className="py-3 px-4 border-b text-sm">
+                      {formatDateOnly(po.orderDate || po.createdat)}
+                    </td>
+                    <td className="py-3 px-4 border-b text-sm">
+                      {formatDateOnly(po.deliveryDate)}
+                    </td>
+                    <td className="py-3 px-4 border-b">
                       {!po.materials || po.materials.length === 0 ? (
                         <span className="text-gray-400 italic">No materials</span>
                       ) : (
@@ -604,14 +749,16 @@ export default function POManagerPage() {
                         </ul>
                       )}
                     </td>
-                    <td className="py-2 px-4 border-b">
+                    <td className="py-3 px-4 border-b font-medium">
                       {po.materials && po.materials.length > 0
                         ? `₱${po.materials.reduce((sum, m) => sum + (m.quantity * m.unitprice), 0).toFixed(2)}`
                         : '₱0.00'}
                     </td>
-                    <td className="py-2 px-4 border-b space-x-2">
-                      <Button variant="secondary" onClick={() => handleEditPurchaseOrder(po)}>Edit</Button>
-                      <Button variant="destructive" onClick={() => handleDeletePurchaseOrder(po.id)}>Delete</Button>
+                    <td className="py-3 px-4 border-b">
+                      <div className="flex space-x-2">
+                        <Button variant="secondary" size="sm" onClick={() => handleEditPurchaseOrder(po)}>Edit</Button>
+                        <Button variant="destructive" size="sm" onClick={() => handleDeletePurchaseOrder(po.id)}>Delete</Button>
+                      </div>
                     </td>
                   </tr>
                 );

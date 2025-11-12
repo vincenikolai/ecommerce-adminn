@@ -33,6 +33,7 @@ model Supplier {
   purchaseOrders     PurchaseOrder[]
   purchaseInvoices   PurchaseInvoice[]
   products           Product[]
+  salesOrders        SalesOrder[]
 
   @@map("supplier_management_items")
   @@schema("public")
@@ -51,6 +52,7 @@ model RawMaterial {
   purchaseQuotationMaterials PurchaseQuotationMaterial[]
   purchaseOrderMaterials     PurchaseOrderMaterial[]
   purchaseInvoiceMaterials   PurchaseInvoiceMaterial[]
+  salesOrderMaterials        SalesOrderMaterial[]
 
   @@map("RawMaterial")
   @@schema("public")
@@ -83,6 +85,35 @@ model PurchaseQuotationMaterial {
   updatedAt           DateTime          @updatedAt
 
   @@map("purchasequotationmaterial")
+  @@schema("public")
+}
+
+model SalesOrder {
+  id             String                @id @default(uuid())
+  supplier       Supplier?              @relation(fields: [supplierId], references: [id])
+  supplierId     String?                @db.Uuid
+  quotedPrice    Float
+  validityDate   DateTime               @db.Date
+  isOrder        Boolean                @default(true)
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  materials      SalesOrderMaterial[]
+
+  @@map("SalesOrder")
+  @@schema("public")
+}
+
+model SalesOrderMaterial {
+  id              String      @id @default(uuid())
+  salesOrder      SalesOrder   @relation(fields: [salesOrderId], references: [id], onDelete: Cascade)
+  salesOrderId    String       @db.Uuid
+  rawMaterial     RawMaterial  @relation(fields: [rawMaterialId], references: [id])
+  rawMaterialId   String
+  quantity        Int
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  @@map("SalesOrderMaterial")
   @@schema("public")
 }
 
@@ -128,6 +159,7 @@ enum PurchaseOrderStatus {
   Rejected
   Completed
   Cancelled
+  PartiallyDelivered
 
   @@schema("public")
 }

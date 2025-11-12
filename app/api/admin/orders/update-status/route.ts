@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import { UserRole } from '@/types/user';
 
 const ADMIN_EMAIL = "eastlachemicals@gmail.com";
-const ORDER_MANAGER_ROLE: UserRole = "order_manager";
+const SALES_MANAGER_ROLE: UserRole = "sales_manager";
 
 export async function POST(req: Request) {
   let supabaseUrl = '';
@@ -50,9 +50,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: profileError.message }, { status: 500 });
     }
 
-    if (!profile || (profile.role !== ORDER_MANAGER_ROLE && session.user?.email !== ADMIN_EMAIL)) {
+    if (!profile || (profile.role !== SALES_MANAGER_ROLE && session.user?.email !== ADMIN_EMAIL)) {
       return NextResponse.json(
-        { error: "Access Denied: Insufficient privileges for Order Manager." },
+        { error: "Access Denied: Insufficient privileges for Sales Manager." },
         { status: 403 }
       );
     }
@@ -63,10 +63,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Order ID and new status are required." }, { status: 400 });
     }
 
-    // Validate status value
-    const validStatuses = ['Pending', 'Processing', 'Completed', 'Cancelled'];
+    // Validate status value - "Quoted" cannot be set manually, only through quotation conversion
+    const validStatuses = ['Pending', 'Paid', 'Completed', 'Cancelled'];
     if (!validStatuses.includes(newStatus)) {
-      return NextResponse.json({ error: "Invalid status value." }, { status: 400 });
+      return NextResponse.json({ error: "Invalid status value. 'Quoted' status cannot be set manually." }, { status: 400 });
     }
 
     console.log(`Updating order ${orderId} status to ${newStatus}`);

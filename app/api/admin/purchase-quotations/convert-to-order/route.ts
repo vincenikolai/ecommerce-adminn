@@ -159,108 +159,77 @@ export async function POST(req: Request) {
       );
     }
 
-    // Generate PO reference number
-    const poReferenceNumber = `PO-${Date.now()}-${Math.random()
-      .toString(36)
-      .substr(2, 9)
-      .toUpperCase()}`;
-
-    // Calculate total quantity of selected materials
-    const totalQuantity = quotationMaterials.reduce(
-      (sum, m) => sum + m.quantity,
-      0
-    );
-
-    // Calculate total amount - use the quoted price proportionally
-    // Or use the full quoted price if all materials are selected
-    const totalAmount = quotation.quotedPrice;
-
-    // Create Purchase Order (linked to the quotation)
-    const { data: purchaseOrder, error: orderError } = await localAdminSupabase
-      .from("purchaseorder") // Corrected to lowercase per prisma/schema.prisma
+    // Create Sales Order (copy from PurchaseQuotation where isOrder = TRUE)
+    const { data: salesOrder, error: orderError } = await localAdminSupabase
+      .from("SalesOrder")
       .insert([
         {
-          poReferenceNumber,
-          supplierId: quotation.supplierId, // Corrected to camelCase
-          purchaseQuotationId: quotation.id, // Corrected to camelCase
-          orderDate: new Date().toISOString().split("T")[0], // Corrected to camelCase
-          deliveryDate: quotation.validityDate, // Corrected to camelCase
-          status: "Pending",
-          totalAmount: totalAmount, // Corrected to camelCase
+          id: quotation.id, // Use the same ID as the quotation
+          supplierId: quotation.supplierId,
+          quotedPrice: quotation.quotedPrice,
+          validityDate: quotation.validityDate,
+          isOrder: true,
+          createdAt: quotation.createdAt,
+          updatedAt: quotation.updatedAt,
         },
       ])
       .select()
       .single();
 
-    if (orderError || !purchaseOrder) {
-      console.error("Error creating purchase order:", orderError);
+    if (orderError || !salesOrder) {
+      console.error("Error creating sales order:", orderError);
       return NextResponse.json(
-        { error: orderError?.message || "Failed to create purchase order." },
+        { error: orderError?.message || "Failed to create sales order." },
         { status: 500 }
       );
     }
 
-    // Calculate unit price: distribute quoted price based on quantity proportions
-    // Each material gets (material.quantity / totalQuantity) * quotedPrice as unit price
-    const orderMaterials = quotationMaterials.map((material) => {
-      const unitPrice =
-        totalQuantity > 0
-          ? (material.quantity / totalQuantity) * quotation.quotedPrice
-          : quotation.quotedPrice / quotationMaterials.length;
-
+    // Copy materials to SalesOrderMaterial
+    const salesOrderMaterials = quotationMaterials.map((material) => {
       return {
-        purchaseorderid: purchaseOrder.id, // Use lowercase for actual DB column name
-        rawmaterialid: material.rawmaterialid, // Use lowercase for actual DB column name
+        id: material.id, // Use the same ID as the quotation material
+        salesOrderId: salesOrder.id,
+        rawMaterialId: material.rawmaterialid,
         quantity: material.quantity,
-        unitprice: unitPrice, // Use lowercase for actual DB column name
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
       };
     });
 
     const { error: orderMaterialsError } = await localAdminSupabase
-      .from("purchaseordermaterial") // Corrected to lowercase per prisma/schema.prisma
-      .insert(orderMaterials);
+      .from("SalesOrderMaterial")
+      .insert(salesOrderMaterials);
 
     if (orderMaterialsError) {
-      // Rollback - delete the purchase order
+      // Rollback - delete the sales order
       await localAdminSupabase
-        .from("purchaseorder") // Corrected to lowercase per prisma/schema.prisma
+        .from("SalesOrder")
         .delete()
-        .eq("id", purchaseOrder.id);
+        .eq("id", salesOrder.id);
       console.error(
-        "Error creating purchase order materials:",
+        "Error creating sales order materials:",
         orderMaterialsError
       );
       return NextResponse.json(
-        { error: "Failed to create purchase order materials." },
+        { error: "Failed to create sales order materials." },
         { status: 500 }
       );
     }
 
-    // Delete the quotation materials from purchasequotationmaterial table
-    const { error: deleteMaterialsError } = await localAdminSupabase
-      .from("purchasequotationmaterial")
-      .delete()
-      .eq("purchasequotationid", quotationId);
-
-    if (deleteMaterialsError) {
-      console.error("Error deleting quotation materials:", deleteMaterialsError);
-      // Don't fail the whole operation, just log the error
-    }
-
-    // Delete the quotation from PurchaseQuotation table
-    const { error: deleteQuotationError } = await localAdminSupabase
-      .from("PurchaseQuotation") 
-      .delete()
+    // Update the quotation's isOrder flag to TRUE instead of deleting
+    const { error: updateQuotationError } = await localAdminSupabase
+      .from("PurchaseQuotation")
+      .update({ isOrder: true })
       .eq("id", quotationId);
 
-    if (deleteQuotationError) {
-      console.error("Error deleting quotation:", deleteQuotationError);
+    if (updateQuotationError) {
+      console.error("Error updating quotation isOrder flag:", updateQuotationError);
       // Don't fail the whole operation, just log the error
     }
 
     return NextResponse.json({
       message: "Sales quotation converted to sales order successfully",
-      purchaseOrder,
+      salesOrder,
     });
   } catch (error: unknown) {
     console.error("Unexpected error in convert to order API:", error);

@@ -96,19 +96,96 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: rriError.message }, { status: 500 });
     }
 
-    // Update purchase order status from "Approved" to "Delivered"
-    const { error: poUpdateError } = await localAdminSupabase
+    // Fetch purchase order with expected materials
+    const { data: purchaseOrder, error: poFetchError } = await localAdminSupabase
       .from('purchaseorder')
-      .update({ status: 'Delivered' })
-      .eq('id', purchaseorderid);
+      .select(`
+        id,
+        status,
+        purchaseordermaterial (
+          rawmaterialid,
+          quantity
+        )
+      `)
+      .eq('id', purchaseorderid)
+      .single();
 
-    if (poUpdateError) {
-      console.error("API Route - Error updating purchase order status:", poUpdateError);
-      // Note: We don't fail the request here since the receiving report was created successfully
-      // The status update is a side effect that can be fixed manually if needed
-      console.warn("Warning: Receiving report created but PO status update failed. PO ID:", purchaseorderid);
-    } else {
-      console.log("API Route - Successfully updated purchase order status to 'Delivered' for PO:", purchaseorderid);
+    if (poFetchError) {
+      console.error("API Route - Error fetching purchase order:", poFetchError);
+      console.warn("Warning: Receiving report created but could not fetch PO for status update. PO ID:", purchaseorderid);
+    } else if (purchaseOrder) {
+      // Fetch all receiving reports for this PO (including the one we just created) to calculate total received
+      const { data: allReceivingReports, error: rrFetchError } = await localAdminSupabase
+        .from('receivingreport')
+        .select(`
+          id,
+          receivingreportitem (
+            rawmaterialid,
+            quantity
+          )
+        `)
+        .eq('purchaseorderid', purchaseorderid);
+
+      if (rrFetchError) {
+        console.error("API Route - Error fetching receiving reports:", rrFetchError);
+        console.warn("Warning: Could not fetch receiving reports to calculate total received quantities.");
+      } else {
+        // Calculate total received quantities per material
+        const totalReceived: Record<string, number> = {};
+        
+        if (allReceivingReports) {
+          allReceivingReports.forEach((report: any) => {
+            const items = report.receivingreportitem || [];
+            items.forEach((item: any) => {
+              const materialId = item.rawmaterialid;
+              const quantity = item.quantity || 0;
+              totalReceived[materialId] = (totalReceived[materialId] || 0) + quantity;
+            });
+          });
+        }
+
+        // Compare expected vs received for each material
+        const expectedMaterials = (purchaseOrder as any).purchaseordermaterial || [];
+        let allFullyReceived = true;
+        let anyPartiallyReceived = false;
+
+        for (const expectedMat of expectedMaterials) {
+          const materialId = expectedMat.rawmaterialid;
+          const expectedQty = expectedMat.quantity || 0;
+          const receivedQty = totalReceived[materialId] || 0;
+
+          if (receivedQty < expectedQty) {
+            allFullyReceived = false;
+            if (receivedQty > 0) {
+              anyPartiallyReceived = true;
+            }
+          }
+        }
+
+        // Determine the new status
+        let newStatus: string;
+        if (allFullyReceived) {
+          newStatus = 'Completed';
+        } else if (anyPartiallyReceived) {
+          newStatus = 'PartiallyDelivered';
+        } else {
+          // No materials received yet, keep current status
+          newStatus = purchaseOrder.status || 'Approved';
+        }
+
+        // Update purchase order status
+        const { error: poUpdateError } = await localAdminSupabase
+          .from('purchaseorder')
+          .update({ status: newStatus })
+          .eq('id', purchaseorderid);
+
+        if (poUpdateError) {
+          console.error("API Route - Error updating purchase order status:", poUpdateError);
+          console.warn("Warning: Receiving report created but PO status update failed. PO ID:", purchaseorderid);
+        } else {
+          console.log(`API Route - Successfully updated purchase order status to '${newStatus}' for PO:`, purchaseorderid);
+        }
+      }
     }
 
     return NextResponse.json({ message: "Receiving report created successfully", receivingReport: receivingReportData });

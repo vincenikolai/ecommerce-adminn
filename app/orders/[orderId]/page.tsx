@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -12,19 +12,20 @@ import { toast } from "react-hot-toast";
 export default function OrderDetailsPage({
   params,
 }: {
-  params: { orderId: string };
+  params: Promise<{ orderId: string }>;
 }) {
+  const { orderId } = use(params);
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
     fetchOrder();
-  }, [params.orderId]);
+  }, [orderId]);
 
   const fetchOrder = async () => {
     try {
-      const response = await fetch(`/api/orders/${params.orderId}`);
+      const response = await fetch(`/api/orders/${orderId}`);
       if (response.ok) {
         const orderData = await response.json();
         setOrder(orderData);
@@ -46,7 +47,7 @@ export default function OrderDetailsPage({
     }
 
     try {
-      const response = await fetch(`/api/orders/${params.orderId}`, {
+      const response = await fetch(`/api/orders/${orderId}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -70,28 +71,22 @@ export default function OrderDetailsPage({
     }
   };
 
-  const getStatusColor = (status: OrderStatus) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
       case "Pending":
         return "bg-yellow-100 text-yellow-800";
-      case "Confirmed":
-        return "bg-blue-100 text-blue-800";
-      case "Processing":
+      case "Paid":
         return "bg-purple-100 text-purple-800";
-      case "Shipped":
-        return "bg-indigo-100 text-indigo-800";
-      case "Delivered":
+      case "Completed":
         return "bg-green-100 text-green-800";
       case "Cancelled":
         return "bg-red-100 text-red-800";
-      case "Refunded":
-        return "bg-gray-100 text-gray-800";
       default:
         return "bg-gray-100 text-gray-800";
     }
   };
 
-  const canCancelOrder = (status: OrderStatus) => {
+  const canCancelOrder = (status: string) => {
     return status === "Pending";
   };
 
@@ -163,27 +158,17 @@ export default function OrderDetailsPage({
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-700">
-                  Payment Status
+                  Payment Method
                 </p>
-                <p className="text-sm text-gray-600">{order.paymentStatus}</p>
+                <p className="text-sm text-gray-600">{order.paymentMethod || 'Cash'}</p>
               </div>
-              {order.approvedAt && (
+              {order.updatedAt && order.updatedAt !== order.createdAt && (
                 <div>
                   <p className="text-sm font-medium text-gray-700">
-                    Approved At
+                    Last Updated
                   </p>
                   <p className="text-sm text-gray-600">
-                    {formatDate(order.approvedAt)}
-                  </p>
-                </div>
-              )}
-              {order.cancelledAt && (
-                <div>
-                  <p className="text-sm font-medium text-gray-700">
-                    Cancelled At
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    {formatDate(order.cancelledAt)}
+                    {formatDate(order.updatedAt)}
                   </p>
                 </div>
               )}
@@ -232,10 +217,10 @@ export default function OrderDetailsPage({
                   </div>
                   <div className="text-right">
                     <p className="font-semibold text-gray-900">
-                      ${item.unitPrice.toFixed(2)}
+                      ${((item as any).unitPrice || (item as any).price || 0).toFixed(2)}
                     </p>
                     <p className="text-sm text-gray-600">
-                      Total: ${item.totalPrice.toFixed(2)}
+                      Total: ${(((item as any).unitPrice || (item as any).price || 0) * item.quantity).toFixed(2)}
                     </p>
                   </div>
                 </div>
@@ -250,40 +235,34 @@ export default function OrderDetailsPage({
               Shipping Address
             </h2>
             <div className="text-sm text-gray-600">
-              <p>{order.shippingAddress.street}</p>
-              <p>
-                {order.shippingAddress.city}, {order.shippingAddress.state}{" "}
-                {order.shippingAddress.zipCode}
-              </p>
-              <p>{order.shippingAddress.country}</p>
+              {order.shippingAddress && typeof order.shippingAddress === 'object' ? (
+                <>
+                  <p>{(order.shippingAddress as any).street || ''}</p>
+                  <p>
+                    {(order.shippingAddress as any).city || ''}, {(order.shippingAddress as any).state || ''}{" "}
+                    {(order.shippingAddress as any).zipCode || ''}
+                  </p>
+                  <p>{(order.shippingAddress as any).country || ''}</p>
+                </>
+              ) : (
+                <p>No shipping address provided</p>
+              )}
             </div>
           </Card>
 
-          {/* Order History */}
-          {order.orderHistory && order.orderHistory.length > 0 && (
+          {/* Order History - Only show if orderHistory exists */}
+          {order.items && Array.isArray(order.items) && order.items.length > 0 && (
             <Card className="p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">
-                Order History
+                Order Items Summary
               </h2>
-              <div className="space-y-3">
-                {order.orderHistory.map((history) => (
-                  <div
-                    key={history.id}
-                    className="flex justify-between items-center p-3 bg-gray-50 rounded-lg"
-                  >
-                    <div>
-                      <p className="font-medium text-gray-900">
-                        {history.status}
-                      </p>
-                      {history.notes && (
-                        <p className="text-sm text-gray-600">{history.notes}</p>
-                      )}
-                    </div>
-                    <p className="text-sm text-gray-500">
-                      {formatDate(history.changedAt)}
-                    </p>
-                  </div>
-                ))}
+              <div className="space-y-2">
+                <p className="text-sm text-gray-600">
+                  Total Items: {order.items.length}
+                </p>
+                <p className="text-sm text-gray-600">
+                  Total Quantity: {order.items.reduce((sum: number, item: any) => sum + (item.quantity || 0), 0)}
+                </p>
               </div>
             </Card>
           )}
@@ -299,33 +278,25 @@ export default function OrderDetailsPage({
               <div className="flex justify-between">
                 <span className="text-gray-600">Subtotal</span>
                 <span className="font-medium">
-                  ${order.subtotal.toFixed(2)}
+                  ${((order.totalAmount || 0) - (order.taxAmount || 0) - (order.shippingAmount || 0)).toFixed(2)}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Tax</span>
                 <span className="font-medium">
-                  ${order.taxAmount.toFixed(2)}
+                  ${(order.taxAmount || 0).toFixed(2)}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Shipping</span>
                 <span className="font-medium">
-                  ${order.shippingCost.toFixed(2)}
+                  ${(order.shippingAmount || 0).toFixed(2)}
                 </span>
               </div>
-              {order.discountAmount > 0 && (
-                <div className="flex justify-between text-green-600">
-                  <span>Discount</span>
-                  <span className="font-medium">
-                    -${order.discountAmount.toFixed(2)}
-                  </span>
-                </div>
-              )}
               <div className="border-t pt-3">
                 <div className="flex justify-between text-lg font-bold">
                   <span>Total</span>
-                  <span>${order.totalAmount.toFixed(2)}</span>
+                  <span>${(order.totalAmount || 0).toFixed(2)}</span>
                 </div>
               </div>
             </div>
@@ -334,19 +305,19 @@ export default function OrderDetailsPage({
               <div className="flex items-center space-x-2">
                 <CreditCard className="h-4 w-4 text-gray-500" />
                 <span className="text-sm text-gray-600">
-                  Payment: {order.paymentMethod}
+                  Payment: {order.paymentMethod || 'Cash'}
                 </span>
               </div>
               <div className="flex items-center space-x-2">
                 <Truck className="h-4 w-4 text-gray-500" />
                 <span className="text-sm text-gray-600">
-                  Delivery: {order.deliveryMethod}
+                  Delivery: {order.deliveryMethod || 'Standard'}
                 </span>
               </div>
               <div className="flex items-center space-x-2">
                 <Package className="h-4 w-4 text-gray-500" />
                 <span className="text-sm text-gray-600">
-                  Status: {order.deliveryStatus}
+                  Status: {order.status || 'Pending'}
                 </span>
               </div>
             </div>

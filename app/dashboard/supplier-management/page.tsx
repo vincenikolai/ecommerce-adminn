@@ -4,26 +4,28 @@ import { useEffect, useState } from 'react';
 import { createClientComponentClient, Session } from '@supabase/auth-helpers-nextjs';
 import toast from 'react-hot-toast';
 import { UserProfile, UserRole } from '@/types/user';
-import { SupplierManagementItem } from '@/types/supplier-management'; // Import SupplierManagementItem interface
-import { Button } from '@/components/ui/button'; // Import Button component
-import { CreateSupplierManagementModal } from '@/components/modals/create-supplier-management-modal'; // Renamed modal
-import { EditSupplierManagementModal } from '@/components/modals/edit-supplier-management-modal'; // Renamed modal
-import { Label } from '@/components/ui/label'; // Import Label
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'; // Import Select components
+import { SupplierManagementItem } from '@/types/supplier-management';
+import { Button } from '@/components/ui/button';
+import { CreateSupplierManagementModal } from '@/components/modals/create-supplier-management-modal';
+import { EditSupplierManagementModal } from '@/components/modals/edit-supplier-management-modal';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-const SUPPLIER_MANAGEMENT_MANAGER_ROLE: UserRole = "supplier_management_manager"; // Renamed role constant
+const SUPPLIER_MANAGEMENT_MANAGER_ROLE: UserRole = "supplier_management_manager";
 
-export default function POManagerPage() {
+export default function SupplierManagementPage() {
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [supplierManagementItems, setSupplierManagementItems] = useState<SupplierManagementItem[]>([]); // Renamed state
+  const [supplierManagementItems, setSupplierManagementItems] = useState<SupplierManagementItem[]>([]);
   const [userRole, setUserRole] = useState<UserProfile["role"] | null>(null);
   const supabase = createClientComponentClient();
-  const [showCreateSupplierManagementModal, setShowCreateSupplierManagementModal] = useState(false); // State for create modal
-  const [showEditSupplierManagementModal, setShowEditSupplierManagementModal] = useState(false);   // State for edit modal
-  const [selectedSupplierManagementItem, setSelectedSupplierManagementItem] = useState<SupplierManagementItem | null>(null); // State for selected item to edit
-  const [sortBy, setSortBy] = useState<"company_name" | "createdat" | "contact_person" | "email">("company_name");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [showCreateSupplierManagementModal, setShowCreateSupplierManagementModal] = useState(false);
+  const [showEditSupplierManagementModal, setShowEditSupplierManagementModal] = useState(false);
+  const [selectedSupplierManagementItem, setSelectedSupplierManagementItem] = useState<SupplierManagementItem | null>(null);
+  
+  // Filters and sorting
+  const [sortBy, setSortBy] = useState<'createdat' | 'company_name' | 'contact_person' | 'email'>('createdat');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {
     const getSessionAndRole = async () => {
@@ -56,9 +58,7 @@ export default function POManagerPage() {
     getSessionAndRole();
   }, [supabase.auth]);
 
-  const fetchProducts = async () => {
-    // Implement product fetching logic here, similar to fetchUsers
-    // This will call a new API route: /api/admin/supplier-management/list
+  const fetchSuppliers = async () => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams({
@@ -70,10 +70,10 @@ export default function POManagerPage() {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to fetch supplier management items");
       }
-      const data: SupplierManagementItem[] = await response.json(); // Changed type
+      const data: SupplierManagementItem[] = await response.json();
       setSupplierManagementItems(data);
     } catch (error: unknown) {
-      console.error("Error in fetchProducts:", error);
+      console.error("Error in fetchSuppliers:", error);
       toast.error("Error: " + (error instanceof Error ? error.message : "An unknown error occurred"));
     } finally {
       setIsLoading(false);
@@ -82,34 +82,33 @@ export default function POManagerPage() {
 
   useEffect(() => {
     if (session && userRole === SUPPLIER_MANAGEMENT_MANAGER_ROLE) {
-      fetchProducts();
+      fetchSuppliers();
     }
   }, [session, userRole, sortBy, sortOrder]);
 
-  const handleCreateSupplierManagementItem = async (newItem: SupplierManagementItem) => { // Renamed function and parameter
-    // Optimistically add the new supplier management item to the list
+  const handleCreateSupplierManagementItem = async (newItem: SupplierManagementItem) => {
     setSupplierManagementItems((prevItems) => [...prevItems, newItem]);
-    toast.success("Supplier management item created successfully!");
-    fetchProducts(); // Re-fetch to ensure data consistency and sorting
+    toast.success("Supplier created successfully!");
+    fetchSuppliers();
   };
 
-  const handleEditSupplierManagementItem = (item: SupplierManagementItem) => { // Renamed function and parameter
+  const handleEditSupplierManagementItem = (item: SupplierManagementItem) => {
     setSelectedSupplierManagementItem(item);
     setShowEditSupplierManagementModal(true);
   };
 
-  const handleSupplierManagementItemUpdated = (updatedItem: SupplierManagementItem) => { // Renamed function and parameter
+  const handleSupplierManagementItemUpdated = (updatedItem: SupplierManagementItem) => {
     setSupplierManagementItems((prevItems) =>
       prevItems.map((i) => (i.id === updatedItem.id ? updatedItem : i))
     );
-    toast.success("Supplier management item updated successfully!");
+    toast.success("Supplier updated successfully!");
     setShowEditSupplierManagementModal(false);
     setSelectedSupplierManagementItem(null);
-    fetchProducts(); // Re-fetch to ensure data consistency and sorting
+    fetchSuppliers();
   };
 
-  const handleDeleteSupplierManagementItem = async (itemId: string) => { // Renamed function and parameter
-    if (!window.confirm("Are you sure you want to delete this supplier management item?")) {
+  const handleDeleteSupplierManagementItem = async (itemId: string) => {
+    if (!window.confirm("Are you sure you want to delete this supplier?")) {
       return;
     }
 
@@ -127,7 +126,7 @@ export default function POManagerPage() {
         throw new Error(errorData.error || "Failed to delete supplier management item");
       }
 
-      toast.success("Supplier management item deleted successfully!");
+      toast.success("Supplier deleted successfully!");
       setSupplierManagementItems((prevItems) => prevItems.filter((i) => i.id !== itemId));
     } catch (error: unknown) {
       console.error("Error deleting supplier management item:", error);
@@ -135,8 +134,19 @@ export default function POManagerPage() {
     }
   };
 
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
   if (isLoading) {
-    return <div className="p-6">Loading supplier management data...</div>;
+    return <div className="p-6">Loading supplier data...</div>;
   }
 
   if (!session || userRole !== SUPPLIER_MANAGEMENT_MANAGER_ROLE) {
@@ -145,61 +155,132 @@ export default function POManagerPage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Supplier Management</h1>
-      <Button onClick={() => setShowCreateSupplierManagementModal(true)} className="mb-4">Add New Supplier</Button>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Supplier Management</h1>
+        <Button onClick={() => setShowCreateSupplierManagementModal(true)}>Add New Supplier</Button>
+      </div>
 
-      <div className="flex space-x-4 mb-4">
+      {/* Filters and Sorting */}
+      <div className="flex flex-wrap gap-4 mb-6">
         <div>
           <Label htmlFor="sortBy">Sort By</Label>
-          <Select onValueChange={(value: "company_name" | "createdat" | "contact_person" | "email") => setSortBy(value)} value={sortBy}>
+          <Select onValueChange={(value: any) => setSortBy(value)} value={sortBy}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="company_name">Company Name</SelectItem>
               <SelectItem value="createdat">Date Added</SelectItem>
+              <SelectItem value="company_name">Company Name</SelectItem>
               <SelectItem value="contact_person">Contact Person</SelectItem>
               <SelectItem value="email">Email</SelectItem>
             </SelectContent>
           </Select>
         </div>
+
         <div>
           <Label htmlFor="sortOrder">Sort Order</Label>
-          <Select onValueChange={(value: "asc" | "desc") => setSortOrder(value)} value={sortOrder}>
+          <Select onValueChange={(value: 'asc' | 'desc') => setSortOrder(value)} value={sortOrder}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Sort order" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="asc">Ascending</SelectItem>
-              <SelectItem value="desc">Descending</SelectItem>
+              <SelectItem value="desc">Newest First</SelectItem>
+              <SelectItem value="asc">Oldest First</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
 
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white p-4 rounded-lg shadow border">
+          <p className="text-sm text-gray-600">Total Suppliers</p>
+          <p className="text-2xl font-bold">{supplierManagementItems.length}</p>
+        </div>
+      </div>
+
+      {/* Suppliers Table */}
       {supplierManagementItems.length === 0 ? (
         <p>No suppliers found.</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full bg-white border border-gray-200">
             <thead>
-              <tr><th className="py-2 px-4 border-b text-left">Company Name</th><th className="py-2 px-4 border-b text-left">Contact Person</th><th className="py-2 px-4 border-b text-left">Email</th><th className="py-2 px-4 border-b text-left">Phone</th><th className="py-2 px-4 border-b text-left">Address</th><th className="py-2 px-4 border-b text-left">Actions</th></tr>
+              <tr className="bg-gray-50">
+                <th className="py-3 px-4 border-b text-left font-semibold">Company Name</th>
+                <th className="py-3 px-4 border-b text-left font-semibold">Contact Person</th>
+                <th className="py-3 px-4 border-b text-left font-semibold">Email</th>
+                <th className="py-3 px-4 border-b text-left font-semibold">Phone</th>
+                <th className="py-3 px-4 border-b text-left font-semibold">Address</th>
+                <th className="py-3 px-4 border-b text-left font-semibold">Date Added</th>
+                <th className="py-3 px-4 border-b text-left font-semibold">Actions</th>
+              </tr>
             </thead>
             <tbody>
               {supplierManagementItems.map((item) => (
-                <tr key={item.id} className="hover:bg-gray-50"><td className="py-2 px-4 border-b">{item.company_name || item.supplier_shop}</td><td className="py-2 px-4 border-b">{item.contact_person || '-'}</td><td className="py-2 px-4 border-b">{item.email || '-'}</td><td className="py-2 px-4 border-b">{item.phone || '-'}</td><td className="py-2 px-4 border-b">{item.address || '-'}</td><td className="py-2 px-4 border-b space-x-2"><Button onClick={() => handleEditSupplierManagementItem(item)}>Edit</Button><Button onClick={() => handleDeleteSupplierManagementItem(item.id)} variant="destructive">Delete</Button></td></tr>
+                <tr key={item.id} className="hover:bg-gray-50">
+                  <td className="py-3 px-4 border-b">
+                    <div className="font-medium">{item.company_name || item.supplier_shop || 'N/A'}</div>
+                  </td>
+                  <td className="py-3 px-4 border-b">
+                    {item.contact_person || <span className="text-gray-400">-</span>}
+                  </td>
+                  <td className="py-3 px-4 border-b">
+                    {item.email ? (
+                      <a href={`mailto:${item.email}`} className="text-blue-600 hover:underline">
+                        {item.email}
+                      </a>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
+                  </td>
+                  <td className="py-3 px-4 border-b">
+                    {item.phone ? (
+                      <a href={`tel:${item.phone}`} className="text-blue-600 hover:underline">
+                        {item.phone}
+                      </a>
+                    ) : (
+                      <span className="text-gray-400">-</span>
+                    )}
+                  </td>
+                  <td className="py-3 px-4 border-b text-sm">
+                    {item.address || <span className="text-gray-400">-</span>}
+                  </td>
+                  <td className="py-3 px-4 border-b text-sm">
+                    {formatDate(item.createdat)}
+                  </td>
+                  <td className="py-3 px-4 border-b">
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditSupplierManagementItem(item)}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDeleteSupplierManagementItem(item.id)}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
-      <CreateSupplierManagementModal // Renamed component
+
+      <CreateSupplierManagementModal
         isOpen={showCreateSupplierManagementModal}
         onClose={() => setShowCreateSupplierManagementModal(false)}
         onProductCreated={handleCreateSupplierManagementItem}
       />
       {selectedSupplierManagementItem && (
-        <EditSupplierManagementModal // Renamed component
+        <EditSupplierManagementModal
           isOpen={showEditSupplierManagementModal}
           onClose={() => setShowEditSupplierManagementModal(false)}
           product={selectedSupplierManagementItem}

@@ -16,7 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-const ORDER_MANAGER_ROLE: UserRole = "order_manager";
+const SALES_MANAGER_ROLE: UserRole = "sales_manager";
 
 export default function OrderManagerPage() {
   const [session, setSession] = useState<Session | null>(null);
@@ -92,7 +92,7 @@ export default function OrderManagerPage() {
   };
 
   useEffect(() => {
-    if (session && userRole === ORDER_MANAGER_ROLE) {
+    if (session && userRole === SALES_MANAGER_ROLE) {
       fetchOrders();
     }
   }, [session, userRole, statusFilter, sortBy, sortOrder]);
@@ -145,7 +145,9 @@ export default function OrderManagerPage() {
     switch (status) {
       case 'Pending':
         return 'bg-yellow-100 text-yellow-800';
-      case 'Processing':
+      case 'Quoted':
+        return 'bg-purple-100 text-purple-800';
+      case 'Paid':
         return 'bg-blue-100 text-blue-800';
       case 'Completed':
         return 'bg-green-100 text-green-800';
@@ -170,8 +172,8 @@ export default function OrderManagerPage() {
     return <div className="p-6">Loading order data...</div>;
   }
 
-  if (!session || userRole !== ORDER_MANAGER_ROLE) {
-    return <div className="p-6 text-red-500">Access Denied: You do not have "Order Manager" privileges to view this page.</div>;
+  if (!session || userRole !== SALES_MANAGER_ROLE) {
+    return <div className="p-6 text-red-500">Access Denied: You do not have "Sales Manager" privileges to view this page.</div>;
   }
 
   return (
@@ -189,7 +191,8 @@ export default function OrderManagerPage() {
             <SelectContent>
               <SelectItem value="all">All Orders</SelectItem>
               <SelectItem value="Pending">Pending</SelectItem>
-              <SelectItem value="Processing">Processing</SelectItem>
+              <SelectItem value="Quoted">Quoted</SelectItem>
+              <SelectItem value="Paid">Paid</SelectItem>
               <SelectItem value="Completed">Completed</SelectItem>
               <SelectItem value="Cancelled">Cancelled</SelectItem>
             </SelectContent>
@@ -226,7 +229,7 @@ export default function OrderManagerPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
         <div className="bg-white p-4 rounded-lg shadow border">
           <p className="text-sm text-gray-600">Total Orders</p>
           <p className="text-2xl font-bold">{orders.length}</p>
@@ -237,10 +240,16 @@ export default function OrderManagerPage() {
             {orders.filter(o => o.status === 'Pending').length}
           </p>
         </div>
+        <div className="bg-purple-50 p-4 rounded-lg shadow border border-purple-200">
+          <p className="text-sm text-purple-800">Quoted</p>
+          <p className="text-2xl font-bold text-purple-900">
+            {orders.filter(o => o.status === 'Quoted').length}
+          </p>
+        </div>
         <div className="bg-blue-50 p-4 rounded-lg shadow border border-blue-200">
-          <p className="text-sm text-blue-800">Processing</p>
+          <p className="text-sm text-blue-800">Paid</p>
           <p className="text-2xl font-bold text-blue-900">
-            {orders.filter(o => o.status === 'Processing').length}
+            {orders.filter(o => o.status === 'Paid').length}
           </p>
         </div>
         <div className="bg-green-50 p-4 rounded-lg shadow border border-green-200">
@@ -294,7 +303,7 @@ export default function OrderManagerPage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="Pending">Pending</SelectItem>
-                        <SelectItem value="Processing">Processing</SelectItem>
+                        <SelectItem value="Paid">Paid</SelectItem>
                         <SelectItem value="Completed">Completed</SelectItem>
                         <SelectItem value="Cancelled">Cancelled</SelectItem>
                       </SelectContent>

@@ -16,10 +16,12 @@ const ALLOWED_ROLES: UserRole[] = [
   "raw_material_manager",
   "finance_manager",
   "supplier_management_manager",
-  "sales_quotation_manager",
   "order_manager",
+  "sales_manager",
   "production_manager",
   "sales_staff",
+  "rider",
+  "rider_manager",
 ];
 
 export async function POST(req: Request) {

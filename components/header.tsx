@@ -15,6 +15,7 @@ const ADMIN_EMAIL = "eastlachemicals@gmail.com";
 const SUPPLIER_MANAGEMENT_MANAGER_ROLE: UserRole =
   "supplier_management_manager"; // Renamed role constant
 const SALES_QUOTATION_MANAGER_ROLE: UserRole = "sales_quotation_manager"; // New role constant
+const SALES_MANAGER_ROLE: UserRole = "sales_manager";
 const RAW_MATERIAL_MANAGER_ROLE: UserRole = "raw_material_manager";
 const PURCHASING_MANAGER_ROLE: UserRole = "purchasing_manager";
 const WAREHOUSE_STAFF_ROLE: UserRole = "warehouse_staff";
@@ -22,6 +23,7 @@ const FINANCE_MANAGER_ROLE: UserRole = "finance_manager";
 const ORDER_MANAGER_ROLE: UserRole = "order_manager";
 const PRODUCTION_MANAGER_ROLE: UserRole = "production_manager";
 const SALES_STAFF_ROLE: UserRole = "sales_staff";
+const RIDER_MANAGER_ROLE: UserRole = "rider_manager";
 
 export function Header() {
   const router = useRouter();
@@ -245,12 +247,14 @@ export function Header() {
           (session && userRole === SUPPLIER_MANAGEMENT_MANAGER_ROLE) ||
           (session && userRole === RAW_MATERIAL_MANAGER_ROLE) ||
           (session && userRole === SALES_QUOTATION_MANAGER_ROLE) || // Updated role check
+          (session && userRole === SALES_MANAGER_ROLE) ||
           (session && userRole === PURCHASING_MANAGER_ROLE) ||
           (session && userRole === WAREHOUSE_STAFF_ROLE) ||
           (session && userRole === FINANCE_MANAGER_ROLE) ||
           (session && userRole === ORDER_MANAGER_ROLE) ||
           (session && userRole === PRODUCTION_MANAGER_ROLE) ||
-          (session && userRole === SALES_STAFF_ROLE) ? (
+          (session && userRole === SALES_STAFF_ROLE) ||
+          (session && userRole === RIDER_MANAGER_ROLE) ? (
             <li className="relative">
               <Button
                 onClick={toggleAdminDropdown}
@@ -351,45 +355,27 @@ export function Header() {
                           closeAdminDropdown();
                         }}
                       >
-                        Raw Material Management
+                        Inventory Management
                       </Link>
                     </li>
                   )}
-                  {userRole === SALES_QUOTATION_MANAGER_ROLE && (
-                    <>
-                      <li>
-                        <Link
-                          href="/dashboard/purchase-quotation-manager"
-                          className={`block px-4 py-2 transition-all duration-200 ${
-                            pathname === "/dashboard/purchase-quotation-manager"
-                              ? "text-blue-600 bg-blue-50 border-l-4 border-blue-600 font-medium"
-                              : "text-gray-800 hover:text-blue-600 hover:bg-blue-50 hover:border-l-4 hover:border-blue-300"
-                          }`}
-                          onClick={() => {
-                            setIsMenuOpen(false);
-                            closeAdminDropdown();
-                          }}
-                        >
-                          Sales Quotation Manager
-                        </Link>
-                      </li>
-                      <li>
-                        <Link
-                          href="/dashboard/sales-order-manager"
-                          className={`block px-4 py-2 transition-all duration-200 ${
-                            pathname === "/dashboard/sales-order-manager"
-                              ? "text-blue-600 bg-blue-50 border-l-4 border-blue-600 font-medium"
-                              : "text-gray-800 hover:text-blue-600 hover:bg-blue-50 hover:border-l-4 hover:border-blue-300"
-                          }`}
-                          onClick={() => {
-                            setIsMenuOpen(false);
-                            closeAdminDropdown();
-                          }}
-                        >
-                          Sales Order Manager
-                        </Link>
-                      </li>
-                    </>
+                  {(userRole === SALES_QUOTATION_MANAGER_ROLE || userRole === SALES_MANAGER_ROLE) && (
+                    <li>
+                      <Link
+                        href="/dashboard/purchase-quotation-manager"
+                        className={`block px-4 py-2 transition-all duration-200 ${
+                          pathname === "/dashboard/purchase-quotation-manager"
+                            ? "text-blue-600 bg-blue-50 border-l-4 border-blue-600 font-medium"
+                            : "text-gray-800 hover:text-blue-600 hover:bg-blue-50 hover:border-l-4 hover:border-blue-300"
+                        }`}
+                        onClick={() => {
+                          setIsMenuOpen(false);
+                          closeAdminDropdown();
+                        }}
+                      >
+                        Sales Quotation Manager
+                      </Link>
+                    </li>
                   )}
                   {userRole === PURCHASING_MANAGER_ROLE && (
                     <li>
@@ -447,6 +433,7 @@ export function Header() {
                   )}
                   {(userRole === "admin" ||
                     userRole === ORDER_MANAGER_ROLE ||
+                    userRole === SALES_MANAGER_ROLE ||
                     userRole === SALES_STAFF_ROLE) && (
                     <li>
                       <Link
@@ -481,6 +468,25 @@ export function Header() {
                         }}
                       >
                         Production Management
+                      </Link>
+                    </li>
+                  )}
+                  {(userRole === "admin" ||
+                    userRole === RIDER_MANAGER_ROLE) && (
+                    <li>
+                      <Link
+                        href="/dashboard/riders"
+                        className={`block px-4 py-2 transition-all duration-200 ${
+                          pathname === "/dashboard/riders"
+                            ? "text-blue-600 bg-blue-50 border-l-4 border-blue-600 font-medium"
+                            : "text-gray-800 hover:text-blue-600 hover:bg-blue-50 hover:border-l-4 hover:border-blue-300"
+                        }`}
+                        onClick={() => {
+                          setIsMenuOpen(false);
+                          closeAdminDropdown();
+                        }}
+                      >
+                        Rider Management
                       </Link>
                     </li>
                   )}

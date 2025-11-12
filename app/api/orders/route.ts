@@ -141,14 +141,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
     }
 
-    // Calculate totals
+    // Calculate totals (use provided values or calculate)
     const subtotal = cartItems.reduce(
       (sum, item) => sum + (item.product?.price || 0) * item.quantity,
       0
     );
-    const tax = subtotal * 0.1; // 10% tax
-    const shipping = orderData.deliveryMethod === "Pickup" ? 0 : 5;
-    const totalAmount = subtotal + tax + shipping;
+    const taxAmount = orderData.taxAmount !== undefined ? orderData.taxAmount : subtotal * 0.1; // 10% tax
+    const shippingAmount = orderData.shippingAmount !== undefined 
+      ? orderData.shippingAmount 
+      : (orderData.deliveryMethod === "Pickup" ? 0 : 5);
+    const totalAmount = orderData.totalAmount !== undefined 
+      ? orderData.totalAmount 
+      : subtotal + taxAmount + shippingAmount;
 
     // Generate order number
     const orderNumber = `ORD-${Date.now()}-${Math.random()
@@ -156,31 +160,44 @@ export async function POST(req: Request) {
       .substr(2, 9)
       .toUpperCase()}`;
 
-    // Create order
+    // Map delivery method to match schema
+    const deliveryMethodMap: Record<string, string> = {
+      "Standard": "Standard",
+      "Express": "Express",
+      "Overnight": "Overnight",
+      "Pickup": "Pickup",
+    };
+    const mappedDeliveryMethod = deliveryMethodMap[orderData.deliveryMethod] || "Standard";
+
+    // Map payment method
+    const paymentMethodMap: Record<string, string> = {
+      "Cash": "Cash",
+      "Cash on Delivery": "Cash",
+    };
+    const mappedPaymentMethod = paymentMethodMap[orderData.paymentMethod] || "Cash";
+
+    // Create order with new schema
     const { data: newOrder, error: orderError } = await adminSupabase
       .from("orders")
       .insert([
         {
-          userId: session.user.id,
           orderNumber,
-          status: "Pending",
-          totalAmount,
-          // Enforce Cash on Delivery only
-          paymentMethod: "Cash on Delivery",
-          deliveryMethod: orderData.deliveryMethod || "Standard Delivery",
-          deliveryStatus: "Pending",
-          // Populate commonly required customer fields; fall back to session
-          customerName:
-            orderData.customerName ||
-            (session.user.user_metadata?.full_name ??
-              session.user.email ??
+          customerName: orderData.customerName || 
+            (session.user.user_metadata?.full_name ?? 
+              session.user.email ?? 
               "Customer"),
-          customerEmail: orderData.customerEmail || session.user.email || null,
+          customerEmail: orderData.customerEmail || session.user.email || "",
           customerPhone: orderData.customerPhone || null,
-          // Store addresses as JSON if columns exist (harmless extra keys otherwise ignored by PostgREST)
-          shippingAddress: orderData.shippingAddress || null,
-          billingAddress: orderData.billingAddress || null,
+          shippingAddress: orderData.shippingAddress || {},
+          billingAddress: orderData.billingAddress || orderData.shippingAddress || {},
+          status: "Pending",
+          paymentMethod: mappedPaymentMethod,
+          deliveryMethod: mappedDeliveryMethod,
+          totalAmount: totalAmount,
+          taxAmount: taxAmount,
+          shippingAmount: shippingAmount,
           notes: orderData.notes || null,
+          userId: session.user.id,
         },
       ])
       .select()

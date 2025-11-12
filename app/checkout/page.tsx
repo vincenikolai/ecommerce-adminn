@@ -99,6 +99,8 @@ export default function CheckoutPage() {
         return 25;
       case "Pickup":
         return 0;
+      case "Standard":
+        return 5;
       default:
         return 5;
     }
@@ -121,12 +123,15 @@ export default function CheckoutPage() {
       const orderData = {
         customerName,
         customerEmail,
-        customerPhone: customerPhone || undefined,
+        customerPhone: customerPhone || null,
         shippingAddress,
         billingAddress: useSameAddress ? shippingAddress : billingAddress,
         paymentMethod,
         deliveryMethod,
-        notes: notes || undefined,
+        totalAmount: calculateGrandTotal(),
+        taxAmount: calculateTax(),
+        shippingAmount: calculateShipping(),
+        notes: notes || null,
         items: cart.items.map((item) => ({
           productId: item.productId,
           quantity: item.quantity,

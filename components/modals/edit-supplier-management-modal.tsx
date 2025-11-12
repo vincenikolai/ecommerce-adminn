@@ -93,7 +93,6 @@ export const EditSupplierManagementModal: React.FC<EditSupplierManagementModalPr
               onChange={(e) => setCompanyName(e.target.value)}
               required
               className="col-span-2"
-              placeholder="ABC Chemicals Inc."
             />
           </div>
           <div className="grid grid-cols-3 items-center gap-4">
@@ -105,7 +104,6 @@ export const EditSupplierManagementModal: React.FC<EditSupplierManagementModalPr
               value={contactPerson}
               onChange={(e) => setContactPerson(e.target.value)}
               className="col-span-2"
-              placeholder="John Doe"
             />
           </div>
           <div className="grid grid-cols-3 items-center gap-4">
@@ -118,7 +116,6 @@ export const EditSupplierManagementModal: React.FC<EditSupplierManagementModalPr
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="col-span-2"
-              placeholder="contact@supplier.com"
             />
           </div>
           <div className="grid grid-cols-3 items-center gap-4">
@@ -131,7 +128,6 @@ export const EditSupplierManagementModal: React.FC<EditSupplierManagementModalPr
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               className="col-span-2"
-              placeholder="+1 234 567 8900"
             />
           </div>
           <div className="grid grid-cols-3 items-center gap-4">
@@ -143,7 +139,6 @@ export const EditSupplierManagementModal: React.FC<EditSupplierManagementModalPr
               value={address}
               onChange={(e) => setAddress(e.target.value)}
               className="col-span-2"
-              placeholder="123 Main St, City, State"
             />
           </div>
           <div className="grid grid-cols-3 items-center gap-4">
@@ -155,7 +150,6 @@ export const EditSupplierManagementModal: React.FC<EditSupplierManagementModalPr
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               className="col-span-2"
-              placeholder="Additional information..."
             />
           </div>
           <Button type="submit" disabled={isLoading}>

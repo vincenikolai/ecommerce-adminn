@@ -6,9 +6,11 @@ import { UpdateOrderStatusRequest, CancelOrderRequest } from "@/types/order";
 
 export async function GET(
   req: Request,
-  { params }: { params: { orderId: string } }
+  { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
+    const { orderId } = await params;
+    
     const authClient = createRouteHandlerClient({ cookies });
     const {
       data: { session },
@@ -47,14 +49,13 @@ export async function GET(
       .select(
         `
         *,
-        items (
+        items:order_items(
           *,
-          product (*)
-        ),
-        orderHistory (*)
+          product:products(*)
+        )
       `
       )
-      .eq("id", params.orderId)
+      .eq("id", orderId)
       .single();
 
     if (error) {
@@ -85,9 +86,11 @@ export async function GET(
 
 export async function PATCH(
   req: Request,
-  { params }: { params: { orderId: string } }
+  { params }: { params: Promise<{ orderId: string }> }
 ) {
   try {
+    const { orderId } = await params;
+    
     const authClient = createRouteHandlerClient({ cookies });
     const {
       data: { session },
@@ -127,7 +130,7 @@ export async function PATCH(
     const { data: order, error: orderError } = await adminSupabase
       .from("orders")
       .select("*")
-      .eq("id", params.orderId)
+      .eq("id", orderId)
       .single();
 
     if (orderError || !order) {
@@ -152,28 +155,29 @@ export async function PATCH(
       .from("orders")
       .update({
         status: updateData.status,
-        cancelledAt:
-          updateData.status === "Cancelled" ? new Date().toISOString() : null,
-        cancelledBy: updateData.status === "Cancelled" ? session.user.id : null,
+        updatedAt: new Date().toISOString(),
       })
-      .eq("id", params.orderId);
+      .eq("id", orderId);
 
     if (updateError) {
       console.error("Error updating order:", updateError);
       return NextResponse.json({ error: updateError.message }, { status: 500 });
     }
 
-    // Add to order history
+    // Add to order history if table exists
     const { error: historyError } = await adminSupabase
       .from("order_history")
       .insert([
         {
-          orderId: params.orderId,
+          orderId: orderId,
           status: updateData.status,
-          notes: updateData.notes,
+          notes: updateData.notes || null,
           changedBy: session.user.id,
         },
-      ]);
+      ]).catch(() => {
+        // Ignore if order_history table doesn't exist
+        return { error: null };
+      });
 
     if (historyError) {
       console.error("Error adding to order history:", historyError);
@@ -187,10 +191,10 @@ export async function PATCH(
         .select(
           `
           *,
-          product (*)
+          product:products(*)
         `
         )
-        .eq("orderId", params.orderId);
+        .eq("orderId", orderId);
 
       if (!itemsError && orderItems) {
         for (const item of orderItems) {

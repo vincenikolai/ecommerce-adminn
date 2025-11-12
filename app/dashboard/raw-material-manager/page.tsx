@@ -22,8 +22,9 @@ export default function RawMaterialManagerPage() {
   const [showCreateRawMaterialModal, setShowCreateRawMaterialModal] = useState(false); // State for create modal
   const [showEditRawMaterialModal, setShowEditRawMaterialModal] = useState(false);   // State for edit modal
   const [selectedRawMaterial, setSelectedRawMaterial] = useState<RawMaterial | null>(null); // State for selected product to edit
-  const [sortBy, setSortBy] = useState<"name" | "createdAt" | "stock" | "category" | "unitOfMeasure">("name");
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  // Filters and sorting
+  const [sortBy, setSortBy] = useState<'createdAt' | 'name' | 'stock' | 'category' | 'unitOfMeasure'>('createdAt');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {
     const getSessionAndRole = async () => {
@@ -86,10 +87,9 @@ export default function RawMaterialManagerPage() {
   }, [session, userRole, sortBy, sortOrder]);
 
   const handleCreateRawMaterial = async (newRawMaterial: RawMaterial) => {
-    // Optimistically add the new supplier management item to the list
     setRawMaterials((prevRawMaterials) => [...prevRawMaterials, newRawMaterial]);
     toast.success("Raw material created successfully!");
-    fetchRawMaterials(); // Re-fetch to ensure data consistency and sorting
+    fetchRawMaterials();
   };
 
   const handleEditRawMaterial = (rawMaterial: RawMaterial) => {
@@ -104,7 +104,7 @@ export default function RawMaterialManagerPage() {
     toast.success("Raw material updated successfully!");
     setShowEditRawMaterialModal(false);
     setSelectedRawMaterial(null);
-    fetchRawMaterials(); // Re-fetch to ensure data consistency and sorting
+    fetchRawMaterials();
   };
 
   const handleDeleteRawMaterial = async (rawMaterialId: string) => {
@@ -134,6 +134,17 @@ export default function RawMaterialManagerPage() {
     }
   };
 
+  const formatDate = (dateString: string | undefined) => {
+    if (!dateString) return 'N/A';
+    return new Date(dateString).toLocaleString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
   if (isLoading) {
     return <div className="p-6">Loading raw material data...</div>;
   }
@@ -144,67 +155,142 @@ export default function RawMaterialManagerPage() {
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-6">Raw Material Management</h1>
-      <Button onClick={() => setShowCreateRawMaterialModal(true)} className="mb-4">Add New Raw Material</Button>
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">Inventory Management</h1>
+        <Button onClick={() => setShowCreateRawMaterialModal(true)}>Add New Raw Material</Button>
+      </div>
 
-      <div className="flex space-x-4 mb-4">
+      {/* Filters and Sorting */}
+      <div className="flex flex-wrap gap-4 mb-6">
         <div>
           <Label htmlFor="sortBy">Sort By</Label>
-          <Select onValueChange={(value: "name" | "createdAt" | "stock" | "category" | "unitOfMeasure") => setSortBy(value)} value={sortBy}>
+          <Select onValueChange={(value: any) => setSortBy(value)} value={sortBy}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="name">Name (Alphabetical)</SelectItem>
               <SelectItem value="createdAt">Date Created</SelectItem>
+              <SelectItem value="name">Name</SelectItem>
               <SelectItem value="stock">Stock</SelectItem>
-              <SelectItem value="category">Category/Type</SelectItem>
+              <SelectItem value="category">Category</SelectItem>
               <SelectItem value="unitOfMeasure">Unit of Measure</SelectItem>
             </SelectContent>
           </Select>
         </div>
+
         <div>
           <Label htmlFor="sortOrder">Sort Order</Label>
-          <Select onValueChange={(value: "asc" | "desc") => setSortOrder(value)} value={sortOrder}>
+          <Select onValueChange={(value: 'asc' | 'desc') => setSortOrder(value)} value={sortOrder}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Sort order" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="asc">Ascending</SelectItem>
-              <SelectItem value="desc">Descending</SelectItem>
+              <SelectItem value="desc">Newest First</SelectItem>
+              <SelectItem value="asc">Oldest First</SelectItem>
             </SelectContent>
           </Select>
         </div>
       </div>
 
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white p-4 rounded-lg shadow border">
+          <p className="text-sm text-gray-600">Total Materials</p>
+          <p className="text-2xl font-bold">{rawMaterials.length}</p>
+        </div>
+        <div className="bg-blue-50 p-4 rounded-lg shadow border border-blue-200">
+          <p className="text-sm text-blue-800">Low Stock (&lt;10)</p>
+          <p className="text-2xl font-bold text-blue-900">
+            {rawMaterials.filter(m => m.stock < 10).length}
+          </p>
+        </div>
+        <div className="bg-green-50 p-4 rounded-lg shadow border border-green-200">
+          <p className="text-sm text-green-800">In Stock</p>
+          <p className="text-2xl font-bold text-green-900">
+            {rawMaterials.filter(m => m.stock > 0).length}
+          </p>
+        </div>
+        <div className="bg-orange-50 p-4 rounded-lg shadow border border-orange-200">
+          <p className="text-sm text-orange-800">Out of Stock</p>
+          <p className="text-2xl font-bold text-orange-900">
+            {rawMaterials.filter(m => m.stock === 0).length}
+          </p>
+        </div>
+      </div>
+
+      {/* Raw Materials Table */}
       {rawMaterials.length === 0 ? (
         <p>No raw materials found.</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full bg-white border border-gray-200">
             <thead>
-              <tr>
-                <th className="py-2 px-4 border-b text-left">Material Name</th>
-                <th className="py-2 px-4 border-b text-left">Category/Type</th>
-                <th className="py-2 px-4 border-b text-left">Material Type</th>
-                <th className="py-2 px-4 border-b text-left">Unit of Measure</th>
-                <th className="py-2 px-4 border-b text-left">Current Stock</th>
-                <th className="py-2 px-4 border-b text-left">Default Supplier</th>
-                <th className="py-2 px-4 border-b text-left">Actions</th>
+              <tr className="bg-gray-50">
+                <th className="py-3 px-4 border-b text-left font-semibold">Material Name</th>
+                <th className="py-3 px-4 border-b text-left font-semibold">Category</th>
+                <th className="py-3 px-4 border-b text-left font-semibold">Material Type</th>
+                <th className="py-3 px-4 border-b text-left font-semibold">Unit of Measure</th>
+                <th className="py-3 px-4 border-b text-left font-semibold">Current Stock</th>
+                <th className="py-3 px-4 border-b text-left font-semibold">Default Supplier</th>
+                <th className="py-3 px-4 border-b text-left font-semibold">Date Added</th>
+                <th className="py-3 px-4 border-b text-left font-semibold">Actions</th>
               </tr>
             </thead>
             <tbody>
               {rawMaterials.map((rawMaterial) => (
                 <tr key={rawMaterial.id} className="hover:bg-gray-50">
-                  <td className="py-2 px-4 border-b">{rawMaterial.name}</td>
-                  <td className="py-2 px-4 border-b">{rawMaterial.category}</td>
-                  <td className="py-2 px-4 border-b">{rawMaterial.materialType || 'Raw Material'}</td>
-                  <td className="py-2 px-4 border-b">{rawMaterial.unitOfMeasure}</td>
-                  <td className="py-2 px-4 border-b">{rawMaterial.stock}</td>
-                  <td className="py-2 px-4 border-b">{rawMaterial.defaultSupplier?.company_name || rawMaterial.defaultSupplier?.supplier_shop || 'N/A'}</td>
-                  <td className="py-2 px-4 border-b space-x-2">
-                    <Button onClick={() => handleEditRawMaterial(rawMaterial)}>Edit</Button>
-                    <Button onClick={() => handleDeleteRawMaterial(rawMaterial.id)} variant="destructive">Delete</Button>
+                  <td className="py-3 px-4 border-b">
+                    <div className="font-medium">{rawMaterial.name}</div>
+                  </td>
+                  <td className="py-3 px-4 border-b">
+                    {rawMaterial.category}
+                  </td>
+                  <td className="py-3 px-4 border-b">
+                    <span className={`px-2 py-1 rounded text-xs ${
+                      rawMaterial.materialType === 'Raw Material' 
+                        ? 'bg-blue-100 text-blue-800' 
+                        : 'bg-purple-100 text-purple-800'
+                    }`}>
+                      {rawMaterial.materialType || 'Raw Material'}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4 border-b">
+                    {rawMaterial.unitOfMeasure}
+                  </td>
+                  <td className="py-3 px-4 border-b">
+                    <span className={`font-medium ${
+                      rawMaterial.stock === 0 
+                        ? 'text-red-600' 
+                        : rawMaterial.stock < 10 
+                        ? 'text-orange-600' 
+                        : 'text-green-600'
+                    }`}>
+                      {rawMaterial.stock}
+                    </span>
+                  </td>
+                  <td className="py-3 px-4 border-b text-sm">
+                    {rawMaterial.defaultSupplier?.company_name || rawMaterial.defaultSupplier?.supplier_shop || <span className="text-gray-400">-</span>}
+                  </td>
+                  <td className="py-3 px-4 border-b text-sm">
+                    {formatDate(rawMaterial.createdAt)}
+                  </td>
+                  <td className="py-3 px-4 border-b">
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEditRawMaterial(rawMaterial)}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleDeleteRawMaterial(rawMaterial.id)}
+                      >
+                        Delete
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))}

@@ -49,21 +49,19 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  // Get query parameters for sorting and filtering
+  const { searchParams } = new URL(req.url);
+  const sortBy = searchParams.get('sortBy') || 'createdat';
+  const sortOrder = searchParams.get('sortOrder') || 'desc';
+  const statusFilter = searchParams.get('status') || 'all';
+
   console.log("API Route - Fetching purchase orders from Supabase...");
 
   try {
     console.log("DEBUG: localAdminSupabase client initialized.");
     
-    // First, let's check what's in the purchaseordermaterial table
-    const { data: allMaterials, error: materialsCheckError } = await localAdminSupabase
-      .from('purchaseordermaterial')
-      .select('*');
-    
-    console.log("DEBUG: All materials in purchaseordermaterial table:", allMaterials);
-    console.log("DEBUG: Materials check error:", materialsCheckError);
-    
-    const query = localAdminSupabase
-      .from("purchaseorder") // Reverted to lowercase as per database hint
+    let query = localAdminSupabase
+      .from("purchaseorder")
       .select(
         `
         id,
@@ -80,6 +78,24 @@ export async function GET(req: Request) {
         materials:purchaseordermaterial(id, purchaseorderid, rawmaterialid, quantity, unitprice, createdat, updatedat, rawMaterial:RawMaterial(id, name))
         `
       );
+
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      query = query.eq('status', statusFilter);
+    }
+
+    // Apply sorting
+    if (sortBy === 'createdat') {
+      query = query.order('createdat', { ascending: sortOrder === 'asc' });
+    } else if (sortBy === 'poReferenceNumber') {
+      query = query.order('poReferenceNumber', { ascending: sortOrder === 'asc' });
+    } else if (sortBy === 'deliveryDate') {
+      query = query.order('deliveryDate', { ascending: sortOrder === 'asc' });
+    } else if (sortBy === 'totalAmount') {
+      query = query.order('totalAmount', { ascending: sortOrder === 'asc' });
+    } else {
+      query = query.order('createdat', { ascending: sortOrder === 'asc' });
+    }
 
     console.log("DEBUG: Supabase query object before execution:", query);
 
