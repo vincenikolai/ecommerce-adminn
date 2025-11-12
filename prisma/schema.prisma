@@ -1,0 +1,322 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL") // IMPORTANT: Ensure your DATABASE_URL in .env or deployment includes '?pgbouncer=true' for Supabase compatibility
+  directUrl = env("DIRECT_URL")
+  schemas   = ["public", "auth"]
+}
+
+model Store {
+  id        String   @id @default(uuid())
+  name      String
+  userId    String
+  createdAt DateTime @default(now())
+  updated   DateTime @updatedAt
+
+  @@schema("public")
+}
+
+model Supplier {
+  id                 String              @id @default(uuid()) @db.Uuid
+  name               String
+  description        String?
+  price              Float               @default(0.0)
+  stock              Int                 @default(0)
+  supplier_shop      String?
+  date               DateTime?           @map("date") @db.Date
+  createdAt          DateTime?           @default(now()) @map("createdat")
+  rawMaterials       RawMaterial[]
+  purchaseQuotations PurchaseQuotation[]
+  purchaseOrders     PurchaseOrder[]
+  purchaseInvoices   PurchaseInvoice[]
+  products           Product[]
+
+  @@map("supplier_management_items")
+  @@schema("public")
+}
+
+model RawMaterial {
+  id                         String                      @id @default(uuid())
+  name                       String
+  category                   String
+  unitOfMeasure              String
+  stock                      Int                         @default(0)
+  createdAt                  DateTime                    @default(now())
+  updatedAt                  DateTime                    @updatedAt
+  defaultSupplier            Supplier?                   @relation(fields: [defaultSupplierId], references: [id])
+  defaultSupplierId          String?                     @db.Uuid
+  purchaseQuotationMaterials PurchaseQuotationMaterial[]
+  purchaseOrderMaterials     PurchaseOrderMaterial[]
+  purchaseInvoiceMaterials   PurchaseInvoiceMaterial[]
+
+  @@map("RawMaterial")
+  @@schema("public")
+}
+
+model PurchaseQuotation {
+  id             String                      @id @default(uuid())
+  supplier       Supplier?                   @relation(fields: [supplierId], references: [id])
+  supplierId     String?                     @db.Uuid // Assuming supplier_management_items.id is UUID
+  quotedPrice    Float
+  validityDate   DateTime                    @db.Date
+  isOrder        Boolean                     @default(false)
+  createdAt      DateTime                    @default(now())
+  updatedAt      DateTime                    @updatedAt
+  materials      PurchaseQuotationMaterial[]
+  purchaseOrders PurchaseOrder[]
+
+  @@map("PurchaseQuotation")
+  @@schema("public")
+}
+
+model PurchaseQuotationMaterial {
+  id                  String            @id @default(uuid())
+  purchaseQuotation   PurchaseQuotation @relation(fields: [purchaseQuotationId], references: [id], onDelete: Cascade)
+  purchaseQuotationId String            @db.Uuid
+  rawMaterial         RawMaterial       @relation(fields: [rawMaterialId], references: [id])
+  rawMaterialId       String
+  quantity            Int
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@map("purchasequotationmaterial")
+  @@schema("public")
+}
+
+model PurchaseOrder {
+  id                  String                  @id @default(uuid())
+  poReferenceNumber   String                  @unique
+  supplier            Supplier                @relation(fields: [supplierId], references: [id])
+  supplierId          String                  @db.Uuid
+  purchaseQuotation   PurchaseQuotation?      @relation(fields: [purchaseQuotationId], references: [id])
+  purchaseQuotationId String?                 @db.Uuid
+  orderDate           DateTime                @db.Date
+  deliveryDate        DateTime                @db.Date
+  status              PurchaseOrderStatus     @default(Pending)
+  totalAmount         Float
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+  materials           PurchaseOrderMaterial[]
+  purchaseInvoice     PurchaseInvoice[]
+  receivingReport     ReceivingReport[]
+
+  @@map("purchaseorder")
+  @@schema("public")
+}
+
+model PurchaseOrderMaterial {
+  id              String        @id @default(uuid())
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+  purchaseOrderId String        @db.Uuid
+  rawMaterial     RawMaterial   @relation(fields: [rawMaterialId], references: [id])
+  rawMaterialId   String
+  quantity        Int
+  unitPrice       Float         @default(0.0)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@map("purchaseordermaterial")
+  @@schema("public")
+}
+
+enum PurchaseOrderStatus {
+  Pending
+  Approved
+  Rejected
+  Completed
+  Cancelled
+
+  @@schema("public")
+}
+
+model ReceivingReport {
+  id                    String            @id @default(uuid())
+  receivingReportNumber String            @unique
+  purchaseOrder         PurchaseOrder     @relation(fields: [purchaseOrderId], references: [id])
+  purchaseOrderId       String            @db.Uuid
+  receivedDate          DateTime          @db.Date
+  status                ReceivingStatus   @default(Pending)
+  receivedMaterials     Json? // Consider a separate table for detailed line items
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+  purchaseInvoice       PurchaseInvoice[]
+
+  @@map("ReceivingReport")
+  @@schema("public")
+}
+
+enum ReceivingStatus {
+  Pending
+  Received
+  PartiallyReceived
+  Rejected
+
+  @@schema("public")
+}
+
+model PurchaseInvoice {
+  id                String                    @id @default(uuid())
+  invoiceNumber     String                    @unique @map("invoicenumber")
+  supplier          Supplier?                 @relation(fields: [supplierId], references: [id])
+  supplierId        String?                   @map("supplierid") @db.Uuid
+  purchaseOrder     PurchaseOrder?            @relation(fields: [poReference], references: [id])
+  poReference       String?                   @map("poreference") @db.Uuid
+  receivingReport   ReceivingReport?          @relation(fields: [receivingReportId], references: [id])
+  receivingReportId String?                   @map("receivingreportid") @db.Uuid
+  invoiceDate       DateTime                  @map("invoicedate") @db.Date
+  dueDate           DateTime                  @map("duedate") @db.Date
+  paymentTerms      String?                   @map("paymentterms")
+  status            PurchaseInvoiceStatus     @default(Unpaid)
+  createdAt         DateTime                  @default(now()) @map("createdat")
+  updatedAt         DateTime                  @updatedAt @map("updatedat")
+  materials         PurchaseInvoiceMaterial[]
+
+  @@map("purchaseinvoice")
+  @@schema("public")
+}
+
+model PurchaseInvoiceMaterial {
+  id                String          @id @default(uuid())
+  purchaseInvoice   PurchaseInvoice @relation(fields: [purchaseInvoiceId], references: [id], onDelete: Cascade)
+  purchaseInvoiceId String          @db.Uuid
+  rawMaterial       RawMaterial     @relation(fields: [rawMaterialId], references: [id])
+  rawMaterialId     String
+  quantity          Int
+  unitPrice         Float
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@map("purchaseinvoicematerial")
+  @@schema("public")
+}
+
+enum PurchaseInvoiceStatus {
+  Unpaid
+  PartiallyPaid
+  Paid
+
+  @@schema("public")
+}
+
+model Product {
+  id          String      @id @default(uuid())
+  name        String
+  description String?
+  price       Float
+  imageUrl    String?
+  category    String
+  stock       Int         @default(0)
+  isActive    Boolean     @default(true)
+  supplier    Supplier?   @relation(fields: [supplierId], references: [id])
+  supplierId  String?     @map("supplierid") @db.Uuid
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  cartItems   CartItem[]
+  orderItems  OrderItem[]
+
+  @@map("products")
+  @@schema("public")
+}
+
+model Cart {
+  id        String     @id @default(uuid())
+  userId    String     @db.Uuid
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  items     CartItem[]
+
+  @@map("carts")
+  @@schema("public")
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  cartId    String   @db.Uuid
+  productId String   @db.Uuid
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  cart      Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id])
+
+  @@map("cart_items")
+  @@schema("public")
+}
+
+model Order {
+  id             String         @id @default(uuid())
+  userId         String         @db.Uuid
+  orderNumber    String         @unique
+  status         OrderStatus    @default(Pending)
+  totalAmount    Float
+  paymentMethod  String
+  deliveryMethod String
+  deliveryStatus String         @default("Pending")
+  notes          String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  items          OrderItem[]
+  orderHistory   OrderHistory[]
+
+  @@map("orders")
+  @@schema("public")
+}
+
+model OrderItem {
+  id        String   @id @default(uuid())
+  orderId   String   @db.Uuid
+  productId String   @db.Uuid
+  quantity  Int
+  price     Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product  @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+  @@schema("public")
+}
+
+model OrderHistory {
+  id        String      @id @default(uuid())
+  orderId   String      @db.Uuid
+  status    OrderStatus
+  notes     String?
+  changedBy String?
+  createdAt DateTime    @default(now())
+  order     Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@map("order_history")
+  @@schema("public")
+}
+
+enum OrderStatus {
+  Pending
+  Confirmed
+  Processing
+  Shipped
+  Delivered
+  Cancelled
+  Refunded
+
+  @@schema("public")
+}
+
+model Review {
+  id         String   @id @default(uuid())
+  userId     String   @db.Uuid
+  userName   String
+  userEmail  String
+  rating     Int // 1-5 stars
+  title      String
+  content    String
+  isApproved Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("reviews")
+  @@schema("public")
+}
