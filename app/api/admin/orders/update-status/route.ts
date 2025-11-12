@@ -64,7 +64,7 @@ export async function POST(req: Request) {
     }
 
     // Validate status value - "Quoted" cannot be set manually, only through quotation conversion
-    const validStatuses = ['Pending', 'Paid', 'Completed', 'Cancelled'];
+    const validStatuses = ['Pending', 'Paid', 'On Delivery', 'Completed', 'Cancelled'];
     if (!validStatuses.includes(newStatus)) {
       return NextResponse.json({ error: "Invalid status value. 'Quoted' status cannot be set manually." }, { status: 400 });
     }

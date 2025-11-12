@@ -22,6 +22,7 @@ const ALLOWED_ROLES: UserRole[] = [
   "sales_staff",
   "rider",
   "rider_manager",
+  "delivery_manager",
 ];
 
 export async function POST(req: Request) {

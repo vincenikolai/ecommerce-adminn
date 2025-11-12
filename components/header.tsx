@@ -24,6 +24,8 @@ const ORDER_MANAGER_ROLE: UserRole = "order_manager";
 const PRODUCTION_MANAGER_ROLE: UserRole = "production_manager";
 const SALES_STAFF_ROLE: UserRole = "sales_staff";
 const RIDER_MANAGER_ROLE: UserRole = "rider_manager";
+const DELIVERY_MANAGER_ROLE: UserRole = "delivery_manager";
+const RIDER_ROLE: UserRole = "rider";
 
 export function Header() {
   const router = useRouter();
@@ -243,6 +245,20 @@ export function Header() {
               My Orders
             </Link>
           </li>
+          {session && userRole === RIDER_ROLE && (
+            <li>
+              <Link
+                href="/dashboard/rider"
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  closeAdminDropdown();
+                }}
+                className={getLinkClasses("/dashboard/rider")}
+              >
+                My Deliveries
+              </Link>
+            </li>
+          )}
           {(session && userRole === "admin") ||
           (session && userRole === SUPPLIER_MANAGEMENT_MANAGER_ROLE) ||
           (session && userRole === RAW_MATERIAL_MANAGER_ROLE) ||
@@ -254,7 +270,8 @@ export function Header() {
           (session && userRole === ORDER_MANAGER_ROLE) ||
           (session && userRole === PRODUCTION_MANAGER_ROLE) ||
           (session && userRole === SALES_STAFF_ROLE) ||
-          (session && userRole === RIDER_MANAGER_ROLE) ? (
+          (session && userRole === RIDER_MANAGER_ROLE) ||
+          (session && userRole === DELIVERY_MANAGER_ROLE) ? (
             <li className="relative">
               <Button
                 onClick={toggleAdminDropdown}
@@ -487,6 +504,25 @@ export function Header() {
                         }}
                       >
                         Rider Management
+                      </Link>
+                    </li>
+                  )}
+                  {(userRole === "admin" ||
+                    userRole === DELIVERY_MANAGER_ROLE) && (
+                    <li>
+                      <Link
+                        href="/dashboard/deliveries"
+                        className={`block px-4 py-2 transition-all duration-200 ${
+                          pathname === "/dashboard/deliveries"
+                            ? "text-blue-600 bg-blue-50 border-l-4 border-blue-600 font-medium"
+                            : "text-gray-800 hover:text-blue-600 hover:bg-blue-50 hover:border-l-4 hover:border-blue-300"
+                        }`}
+                        onClick={() => {
+                          setIsMenuOpen(false);
+                          closeAdminDropdown();
+                        }}
+                      >
+                        Delivery Management
                       </Link>
                     </li>
                   )}

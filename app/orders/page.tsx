@@ -87,6 +87,8 @@ export default function OrdersPage() {
         return "bg-yellow-100 text-yellow-800";
       case "Paid":
         return "bg-purple-100 text-purple-800";
+      case "On Delivery":
+        return "bg-orange-100 text-orange-800";
       case "Completed":
         return "bg-green-100 text-green-800";
       case "Cancelled":
@@ -124,9 +126,14 @@ export default function OrdersPage() {
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold text-gray-900">My Orders</h1>
-        <Button onClick={() => router.push("/products")}>
-          Continue Shopping
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={fetchOrders}>
+            Refresh
+          </Button>
+          <Button onClick={() => router.push("/products")}>
+            Continue Shopping
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -141,6 +148,7 @@ export default function OrdersPage() {
               <SelectItem value="all">All Orders</SelectItem>
               <SelectItem value="Pending">Pending</SelectItem>
               <SelectItem value="Paid">Paid</SelectItem>
+              <SelectItem value="On Delivery">On Delivery</SelectItem>
               <SelectItem value="Completed">Completed</SelectItem>
               <SelectItem value="Cancelled">Cancelled</SelectItem>
             </SelectContent>

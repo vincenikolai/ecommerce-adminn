@@ -149,6 +149,8 @@ export default function OrderManagerPage() {
         return 'bg-purple-100 text-purple-800';
       case 'Paid':
         return 'bg-blue-100 text-blue-800';
+      case 'On Delivery':
+        return 'bg-orange-100 text-orange-800';
       case 'Completed':
         return 'bg-green-100 text-green-800';
       case 'Cancelled':
@@ -193,6 +195,7 @@ export default function OrderManagerPage() {
               <SelectItem value="Pending">Pending</SelectItem>
               <SelectItem value="Quoted">Quoted</SelectItem>
               <SelectItem value="Paid">Paid</SelectItem>
+              <SelectItem value="On Delivery">On Delivery</SelectItem>
               <SelectItem value="Completed">Completed</SelectItem>
               <SelectItem value="Cancelled">Cancelled</SelectItem>
             </SelectContent>
@@ -229,7 +232,7 @@ export default function OrderManagerPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-6 gap-4 mb-6">
         <div className="bg-white p-4 rounded-lg shadow border">
           <p className="text-sm text-gray-600">Total Orders</p>
           <p className="text-2xl font-bold">{orders.length}</p>
@@ -250,6 +253,12 @@ export default function OrderManagerPage() {
           <p className="text-sm text-blue-800">Paid</p>
           <p className="text-2xl font-bold text-blue-900">
             {orders.filter(o => o.status === 'Paid').length}
+          </p>
+        </div>
+        <div className="bg-orange-50 p-4 rounded-lg shadow border border-orange-200">
+          <p className="text-sm text-orange-800">On Delivery</p>
+          <p className="text-2xl font-bold text-orange-900">
+            {orders.filter(o => o.status === 'On Delivery').length}
           </p>
         </div>
         <div className="bg-green-50 p-4 rounded-lg shadow border border-green-200">
@@ -304,6 +313,7 @@ export default function OrderManagerPage() {
                       <SelectContent>
                         <SelectItem value="Pending">Pending</SelectItem>
                         <SelectItem value="Paid">Paid</SelectItem>
+                        <SelectItem value="On Delivery">On Delivery</SelectItem>
                         <SelectItem value="Completed">Completed</SelectItem>
                         <SelectItem value="Cancelled">Cancelled</SelectItem>
                       </SelectContent>

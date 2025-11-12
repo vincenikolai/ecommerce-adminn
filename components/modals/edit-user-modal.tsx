@@ -112,6 +112,7 @@ export const EditUserModal: React.FC<EditUserModalProps> = ({ isOpen, onClose, u
                 <SelectItem value="sales_staff">Sales Staff</SelectItem>
                 <SelectItem value="rider">Rider</SelectItem>
                 <SelectItem value="rider_manager">Rider's Manager</SelectItem>
+                <SelectItem value="delivery_manager">Delivery Manager</SelectItem>
                 <SelectItem value="customer">Customer</SelectItem>
               </SelectContent>
             </Select>
