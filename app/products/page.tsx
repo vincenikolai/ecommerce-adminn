@@ -4,6 +4,9 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { CartPopup } from "@/components/modals/cart-popup";
 import { ReviewPopup } from "@/components/modals/review-popup";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Search, X } from "lucide-react";
 
 interface Product {
   id: string;
@@ -21,14 +24,45 @@ export default function ProductsPage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isCartPopupOpen, setIsCartPopupOpen] = useState(false);
   const [isReviewPopupOpen, setIsReviewPopupOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [allCategories, setAllCategories] = useState<string[]>([]);
 
   useEffect(() => {
     fetchProducts();
+  }, [categoryFilter]);
+
+  useEffect(() => {
+    fetchCategories();
   }, []);
 
-  const fetchProducts = async () => {
+  const fetchCategories = async () => {
     try {
       const response = await fetch("/api/products");
+      if (response.ok) {
+        const productsData = await response.json();
+        const categories = Array.from(
+          new Set(productsData.map((p: Product) => p.category))
+        ).filter(Boolean) as string[];
+        setAllCategories(categories);
+      }
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+    }
+  };
+
+  const fetchProducts = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (searchQuery.trim()) {
+        params.append("search", searchQuery.trim());
+      }
+      if (categoryFilter && categoryFilter !== "all") {
+        params.append("category", categoryFilter);
+      }
+
+      const response = await fetch(`/api/products?${params.toString()}`);
       if (response.ok) {
         const productsData = await response.json();
         setProducts(productsData);
@@ -39,6 +73,24 @@ export default function ProductsPage() {
       console.error("Error fetching products:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSearch = () => {
+    fetchProducts();
+  };
+
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    setCategoryFilter("all");
+    // fetchProducts will be called by useEffect when categoryFilter changes
+    // But we need to call it immediately for searchQuery
+    setTimeout(() => fetchProducts(), 0);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleSearch();
     }
   };
 
@@ -77,6 +129,82 @@ export default function ProductsPage() {
               the highest standards of quality and effectiveness.
             </p>
             <div className="w-24 h-1 bg-gradient-to-r from-blue-600 to-blue-400 rounded-full mx-auto mt-6"></div>
+          </div>
+        </section>
+
+        {/* Search and Filter Section */}
+        <section className="mb-8">
+          <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 shadow-lg">
+            <div className="flex flex-col md:flex-row gap-4">
+              {/* Search Input */}
+              <div className="flex-1 flex gap-2">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <Input
+                    type="text"
+                    placeholder="Search products by name or description..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    className="pl-10 pr-10 h-12 text-lg"
+                  />
+                  {searchQuery && (
+                    <button
+                      onClick={handleClearSearch}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  )}
+                </div>
+                <Button
+                  onClick={handleSearch}
+                  className="bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 px-6 h-12"
+                >
+                  <Search className="w-5 h-5 mr-2" />
+                  Search
+                </Button>
+              </div>
+
+              {/* Category Filter */}
+              <div className="md:w-48">
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => {
+                    setCategoryFilter(e.target.value);
+                    // fetchProducts will be called by useEffect
+                  }}
+                  className="w-full h-12 px-4 rounded-lg border border-gray-300 bg-white text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                  <option value="all">All Categories</option>
+                  {allCategories.map((category) => (
+                    <option key={category} value={category}>
+                      {category}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Search Results Info */}
+            {(searchQuery || categoryFilter !== "all") && (
+              <div className="mt-4 flex items-center justify-between">
+                <p className="text-sm text-gray-600">
+                  Found {products.length} product{products.length !== 1 ? "s" : ""}
+                  {searchQuery && ` matching "${searchQuery}"`}
+                  {categoryFilter !== "all" && ` in ${categoryFilter}`}
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleClearSearch}
+                  className="text-gray-600"
+                >
+                  <X className="w-4 h-4 mr-1" />
+                  Clear Filters
+                </Button>
+              </div>
+            )}
           </div>
         </section>
 
