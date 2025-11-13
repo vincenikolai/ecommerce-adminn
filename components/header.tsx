@@ -488,6 +488,24 @@ export function Header() {
                       </Link>
                     </li>
                   )}
+                  {userRole === "admin" && (
+                    <li>
+                      <Link
+                        href="/dashboard/reviews"
+                        className={`block px-4 py-2 transition-all duration-200 ${
+                          pathname === "/dashboard/reviews"
+                            ? "text-blue-600 bg-blue-50 border-l-4 border-blue-600 font-medium"
+                            : "text-gray-800 hover:text-blue-600 hover:bg-blue-50 hover:border-l-4 hover:border-blue-300"
+                        }`}
+                        onClick={() => {
+                          setIsMenuOpen(false);
+                          closeAdminDropdown();
+                        }}
+                      >
+                        Reviews Management
+                      </Link>
+                    </li>
+                  )}
                   {(userRole === "admin" ||
                     userRole === PRODUCTION_MANAGER_ROLE) && (
                     <li>

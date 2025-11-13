@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
 import { cookies } from "next/headers";
-
-// Simple in-memory reviews storage (for demo purposes)
-let reviews: any[] = [];
+import { createClient } from "@supabase/supabase-js";
+import { CreateReviewRequest } from "@/types/review";
 
 export async function POST(req: Request) {
   try {
@@ -50,7 +49,8 @@ export async function POST(req: Request) {
       );
     }
 
-    const { userName, userEmail, rating, title, content } = await req.json();
+    const body: CreateReviewRequest = await req.json();
+    const { rating, title, content, productId, orderId } = body;
 
     if (!rating || !title || !content) {
       return NextResponse.json(
@@ -70,26 +70,54 @@ export async function POST(req: Request) {
       );
     }
 
-    // Use customer's actual name or provided name
-    const customerName = userName?.trim() || 
+    // Use customer's actual name
+    const customerName = 
       `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || 
       "Customer";
 
-    // Create review (customers only)
-    const review = {
-      id: `review-${Date.now()}`,
-      userId: session.user.id,
-      userName: customerName,
-      userEmail: session.user.email || userEmail || "customer@example.com",
-      rating: parseInt(rating),
-      title: title.trim(),
-      content: content.trim(),
-      isApproved: false,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    // Create Supabase admin client for database operations
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+    const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || '';
 
-    reviews.push(review);
+    if (!supabaseUrl || !supabaseServiceRoleKey) {
+      return NextResponse.json(
+        { error: "Server configuration error" },
+        { status: 500 }
+      );
+    }
+
+    const adminSupabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
+      auth: {
+        persistSession: false,
+      },
+    });
+
+    // Create review in database
+    const { data: review, error: reviewError } = await adminSupabase
+      .from('reviews')
+      .insert([{
+        userId: session.user.id,
+        userName: customerName,
+        userEmail: session.user.email || "customer@example.com",
+        rating: parseInt(rating.toString()),
+        title: title.trim(),
+        content: content.trim(),
+        isApproved: false, // Requires admin approval
+        productId: productId || null,
+        orderId: orderId || null,
+      }])
+      .select()
+      .single();
+
+    if (reviewError || !review) {
+      console.error("Error creating review:", reviewError);
+      return NextResponse.json(
+        {
+          error: "Failed to create review",
+        },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json(
       {
@@ -110,19 +138,3 @@ export async function POST(req: Request) {
   }
 }
 
-export async function GET(req: Request) {
-  try {
-    // Return only approved reviews
-    const approvedReviews = reviews.filter((review) => review.isApproved);
-
-    return NextResponse.json(approvedReviews);
-  } catch (error) {
-    console.error("Error fetching reviews:", error);
-    return NextResponse.json(
-      {
-        error: "Failed to fetch reviews",
-      },
-      { status: 500 }
-    );
-  }
-}

@@ -16,31 +16,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   Star,
-  StarIcon,
   User,
   Calendar,
   MessageSquare,
-  ThumbsUp,
+  Edit,
+  Trash2,
+  Send,
+  Reply,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { UserProfile } from "@/types/user";
+import { Review, ReviewComment } from "@/types/review";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
-interface Review {
-  id: string;
-  userId: string;
-  userName: string;
-  userEmail: string;
-  rating: number;
-  title: string;
-  content: string;
-  isApproved: boolean;
-  createdAt: string;
-  updatedAt: string;
-}
+type LayoutType = "List" | "Masonry" | "Carousel";
 
 export default function ReviewsPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -50,10 +49,22 @@ export default function ReviewsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showReviewForm, setShowReviewForm] = useState(false);
   const [reviewForm, setReviewForm] = useState({
-    rating: "",
+    rating: 0,
     title: "",
     content: "",
   });
+  
+  // Layout and display options
+  const [layout, setLayout] = useState<LayoutType>("Masonry");
+  const [verticalSpacing, setVerticalSpacing] = useState(20);
+  const [horizontalSpacing, setHorizontalSpacing] = useState(20);
+  const [reviewsPerPage, setReviewsPerPage] = useState(6);
+  
+  // Comments state
+  const [expandedComments, setExpandedComments] = useState<Set<string>>(new Set());
+  const [commentForms, setCommentForms] = useState<Record<string, string>>({});
+  const [replyingTo, setReplyingTo] = useState<Record<string, string>>({});
+  const [isSubmittingComment, setIsSubmittingComment] = useState<Record<string, boolean>>({});
 
   const supabase = createClientComponentClient();
 
@@ -75,6 +86,7 @@ export default function ReviewsPage() {
     };
 
     getSession();
+    fetchReviews();
   }, [supabase.auth]);
 
   const fetchUserProfile = async (userId: string) => {
@@ -97,7 +109,7 @@ export default function ReviewsPage() {
 
   const fetchReviews = async () => {
     try {
-      const response = await fetch("/api/reviews/list");
+      const response = await fetch("/api/reviews/list?approved=true");
       if (response.ok) {
         const data = await response.json();
         setReviews(data);
@@ -107,12 +119,10 @@ export default function ReviewsPage() {
     } catch (error) {
       console.error("Error fetching reviews:", error);
       toast.error("Failed to fetch reviews");
+    } finally {
+      setIsLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchReviews();
-  }, []);
 
   const handleSubmitReview = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -140,14 +150,18 @@ export default function ReviewsPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(reviewForm),
+        body: JSON.stringify({
+          rating: reviewForm.rating,
+          title: reviewForm.title,
+          content: reviewForm.content,
+        }),
       });
 
       const data = await response.json();
 
       if (response.ok) {
         toast.success(data.message);
-        setReviewForm({ rating: "", title: "", content: "" });
+        setReviewForm({ rating: 0, title: "", content: "" });
         setShowReviewForm(false);
         fetchReviews();
       } else {
@@ -161,10 +175,102 @@ export default function ReviewsPage() {
     }
   };
 
-  const renderStars = (
+  const handleSubmitComment = async (reviewId: string, parentCommentId?: string) => {
+    const commentContent = commentForms[reviewId]?.trim();
+    if (!commentContent) {
+      toast.error("Please enter a comment");
+      return;
+    }
+
+    if (!session) {
+      toast.error("Please log in to post a comment");
+      return;
+    }
+
+    setIsSubmittingComment({ ...isSubmittingComment, [reviewId]: true });
+
+    try {
+      const response = await fetch("/api/reviews/comments/create", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          reviewId,
+          content: commentContent,
+          parentCommentId: parentCommentId || null,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success("Comment posted successfully");
+        setCommentForms({ ...commentForms, [reviewId]: "" });
+        setReplyingTo({ ...replyingTo, [reviewId]: "" });
+        fetchReviews();
+      } else {
+        toast.error(data.error);
+      }
+    } catch (error) {
+      console.error("Error submitting comment:", error);
+      toast.error("Failed to post comment");
+    } finally {
+      setIsSubmittingComment({ ...isSubmittingComment, [reviewId]: false });
+    }
+  };
+
+  const handleDeleteReview = async (reviewId: string) => {
+    if (!confirm("Are you sure you want to delete this review?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/admin/reviews/delete?reviewId=${reviewId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        toast.success("Review deleted successfully");
+        fetchReviews();
+      } else {
+        const data = await response.json();
+        toast.error(data.error || "Failed to delete review");
+      }
+    } catch (error) {
+      console.error("Error deleting review:", error);
+      toast.error("Failed to delete review");
+    }
+  };
+
+  const renderStars = (rating: number, size: "sm" | "md" | "lg" = "md") => {
+    const sizeClasses = {
+      sm: "w-4 h-4",
+      md: "w-5 h-5",
+      lg: "w-6 h-6",
+    };
+
+    return (
+      <div className="flex gap-0.5">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star
+            key={star}
+            className={`${sizeClasses[size]} ${
+              star <= rating
+                ? "fill-yellow-400 text-yellow-400"
+                : star <= rating + 0.5
+                ? "fill-yellow-200 text-yellow-400"
+                : "text-gray-300"
+            }`}
+          />
+        ))}
+      </div>
+    );
+  };
+
+  const renderInteractiveStars = (
     rating: number,
-    interactive: boolean = false,
-    onRatingChange?: (rating: number) => void
+    onRatingChange: (rating: number) => void
   ) => {
     return (
       <div className="flex gap-1">
@@ -172,16 +278,11 @@ export default function ReviewsPage() {
           <button
             key={star}
             type="button"
-            className={`${
-              interactive ? "cursor-pointer hover:scale-110" : "cursor-default"
-            } transition-transform`}
-            onClick={() =>
-              interactive && onRatingChange && onRatingChange(star)
-            }
-            disabled={!interactive}
+            className="cursor-pointer hover:scale-110 transition-transform"
+            onClick={() => onRatingChange(star)}
           >
             <Star
-              className={`w-5 h-5 ${
+              className={`w-6 h-6 ${
                 star <= rating
                   ? "fill-yellow-400 text-yellow-400"
                   : "text-gray-300"
@@ -193,267 +294,453 @@ export default function ReviewsPage() {
     );
   };
 
+  const calculateAverageRating = () => {
+    if (reviews.length === 0) return 0;
+    const sum = reviews.reduce((acc, review) => acc + review.rating, 0);
+    return sum / reviews.length;
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "1 day ago";
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
   const canSubmitReview = session && userProfile?.role === "customer";
+  const isAdmin = session && (userProfile?.role === "admin" || session.user?.email === "eastlachemicals@gmail.com");
+  const averageRating = calculateAverageRating();
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-gray-900 mb-4">
-              Customer Reviews
-            </h1>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              See what our satisfied customers have to say about ELA Chemicals.
-              Your feedback helps us continue to provide exceptional service.
-            </p>
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header Section */}
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">Reviews</h1>
+          <div className="flex items-center gap-4 mb-2">
+            <div className="flex items-center gap-2">
+              {renderStars(Math.round(averageRating), "lg")}
+              <span className="text-2xl font-bold text-gray-900">
+                {averageRating.toFixed(1)}
+              </span>
+            </div>
+            <span className="text-gray-600">
+              Over {reviews.length} Review{reviews.length !== 1 ? "s" : ""}
+            </span>
           </div>
+          <Badge variant="outline" className="mt-2">
+            Posts Layout
+          </Badge>
         </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Review Submission Section */}
+        {/* Write Review Button */}
         {canSubmitReview && (
-          <Card className="mb-12 bg-white shadow-lg border-0">
-            <CardHeader className="text-center bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-t-lg">
-              <CardTitle className="text-2xl font-bold flex items-center justify-center gap-2">
-                <MessageSquare className="w-6 h-6" />
-                Share Your Experience
-              </CardTitle>
-              <p className="text-blue-100 mt-2">
-                Help others by sharing your experience with ELA Chemicals
-              </p>
-            </CardHeader>
-            <CardContent className="p-8">
-              {!showReviewForm ? (
-                <div className="text-center">
-                  <Button
-                    onClick={() => setShowReviewForm(true)}
-                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3 rounded-lg font-semibold text-lg shadow-lg hover:shadow-xl transition-all duration-300"
-                  >
-                    <Star className="w-5 h-5 mr-2" />
-                    Write a Review
-                  </Button>
-                </div>
-              ) : (
-                <form onSubmit={handleSubmitReview} className="space-y-6">
-                  <div>
-                    <Label
-                      htmlFor="rating"
-                      className="text-lg font-semibold text-gray-700"
-                    >
-                      Rating *
-                    </Label>
-                    <div className="mt-2">
-                      {renderStars(
-                        parseInt(reviewForm.rating) || 0,
-                        true,
-                        (rating) =>
-                          setReviewForm({
-                            ...reviewForm,
-                            rating: rating.toString(),
-                          })
-                      )}
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label
-                      htmlFor="title"
-                      className="text-lg font-semibold text-gray-700"
-                    >
-                      Review Title *
-                    </Label>
-                    <Input
-                      id="title"
-                      value={reviewForm.title}
-                      onChange={(e) =>
-                        setReviewForm({ ...reviewForm, title: e.target.value })
-                      }
-                      placeholder="Summarize your experience..."
-                      className="mt-2 text-lg py-3"
-                      maxLength={100}
-                    />
-                  </div>
-
-                  <div>
-                    <Label
-                      htmlFor="content"
-                      className="text-lg font-semibold text-gray-700"
-                    >
-                      Your Review *
-                    </Label>
-                    <Textarea
-                      id="content"
-                      value={reviewForm.content}
-                      onChange={(e) =>
-                        setReviewForm({
-                          ...reviewForm,
-                          content: e.target.value,
-                        })
-                      }
-                      placeholder="Tell us about your experience with our products and service..."
-                      className="mt-2 text-lg min-h-[120px]"
-                      maxLength={500}
-                    />
-                    <p className="text-sm text-gray-500 mt-1">
-                      {reviewForm.content.length}/500 characters
-                    </p>
-                  </div>
-
-                  <div className="flex gap-4">
-                    <Button
-                      type="submit"
-                      disabled={isSubmitting}
-                      className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3 rounded-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
-                    >
-                      {isSubmitting ? "Submitting..." : "Submit Review"}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setShowReviewForm(false);
-                        setReviewForm({ rating: "", title: "", content: "" });
-                      }}
-                      className="px-8 py-3 rounded-lg font-semibold"
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                </form>
-              )}
-            </CardContent>
-          </Card>
+          <div className="mb-6 flex justify-end">
+            <Button
+              onClick={() => setShowReviewForm(true)}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <Edit className="w-4 h-4 mr-2" />
+              Write a Review
+            </Button>
+          </div>
         )}
 
-        {/* Reviews Display */}
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-              <ThumbsUp className="w-8 h-8 text-blue-600" />
-              Customer Testimonials
-            </h2>
-            <Badge variant="secondary" className="text-lg px-4 py-2">
-              {reviews.length} Reviews
-            </Badge>
-          </div>
-
-          {reviews.length === 0 ? (
-            <Card className="bg-white shadow-lg border-0">
-              <CardContent className="text-center py-12">
-                <MessageSquare className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-600 mb-2">
-                  No reviews yet
-                </h3>
-                <p className="text-gray-500">
-                  Be the first to share your experience with ELA Chemicals!
-                </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {reviews.map((review) => (
-                <Card
-                  key={review.id}
-                  className="bg-white shadow-lg border-0 hover:shadow-xl transition-shadow duration-300"
-                >
-                  <CardHeader className="pb-4">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center">
-                          <User className="w-6 h-6 text-white" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-gray-900">
-                            {review.userName}
-                          </h3>
-                          <p className="text-sm text-gray-500">
-                            {review.userEmail}
-                          </p>
-                        </div>
+        {/* Reviews Grid */}
+        {reviews.length === 0 ? (
+          <Card className="p-12 text-center">
+            <MessageSquare className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-600 mb-2">
+              No reviews yet
+            </h3>
+            <p className="text-gray-500">
+              Be the first to share your experience!
+            </p>
+          </Card>
+        ) : (
+          <div
+            className={
+              layout === "Masonry"
+                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+                : layout === "List"
+                ? "grid grid-cols-1"
+                : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+            }
+            style={{
+              gap: `${verticalSpacing}px ${horizontalSpacing}px`,
+            }}
+          >
+            {reviews.slice(0, reviewsPerPage).map((review) => (
+              <Card
+                key={review.id}
+                className="bg-white border border-gray-200 hover:shadow-lg transition-shadow"
+              >
+                <CardContent className="p-6">
+                  {/* Review Header */}
+                  <div className="flex items-start gap-4 mb-4">
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center flex-shrink-0">
+                      <User className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="font-semibold text-gray-900 truncate">
+                          {review.userName}
+                        </h3>
+                        <span className="inline-flex items-center justify-center w-5 h-5 bg-green-500 rounded-full">
+                          <span className="text-white text-xs">✓</span>
+                        </span>
                       </div>
-                      <Badge variant="outline" className="text-xs">
-                        Verified
-                      </Badge>
+                      <p className="text-sm text-gray-500 flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        {formatDate(review.createdAt)}
+                      </p>
                     </div>
-                    <div className="flex items-center gap-2 mb-2">
-                      {renderStars(review.rating)}
-                      <span className="text-sm text-gray-600 ml-2">
-                        {review.rating}/5
-                      </span>
-                    </div>
-                    <h4 className="font-semibold text-lg text-gray-900 line-clamp-2">
+                    {isAdmin && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteReview(review.id)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    )}
+                  </div>
+
+                  {/* Rating */}
+                  <div className="mb-3">
+                    {renderStars(review.rating)}
+                  </div>
+
+                  {/* Review Title */}
+                  {review.title && (
+                    <h4 className="font-semibold text-gray-900 mb-2">
                       {review.title}
                     </h4>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-gray-700 leading-relaxed mb-4 line-clamp-4">
-                      {review.content}
-                    </p>
-                    <div className="flex items-center gap-2 text-sm text-gray-500">
-                      <Calendar className="w-4 h-4" />
-                      <span>
-                        {new Date(review.createdAt).toLocaleDateString(
-                          "en-US",
-                          {
-                            year: "numeric",
-                            month: "long",
-                            day: "numeric",
-                          }
-                        )}
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </div>
+                  )}
 
-        {/* Call to Action for Non-Customers */}
-        {!canSubmitReview && session && (
-          <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
-            <CardContent className="text-center py-8">
-              <MessageSquare className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Want to share your experience?
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Only customers can submit reviews. If you're a customer, please
-                contact support.
-              </p>
-            </CardContent>
-          </Card>
+                  {/* Review Content */}
+                  <p className="text-gray-700 text-sm leading-relaxed mb-4">
+                    {review.content}
+                  </p>
+
+                  {/* Comments Section */}
+                  <div className="border-t pt-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <button
+                        onClick={() => {
+                          const newExpanded = new Set(expandedComments);
+                          if (newExpanded.has(review.id)) {
+                            newExpanded.delete(review.id);
+                          } else {
+                            newExpanded.add(review.id);
+                          }
+                          setExpandedComments(newExpanded);
+                        }}
+                        className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                      >
+                        <MessageSquare className="w-4 h-4" />
+                        {review.comments?.length || 0} Comment
+                        {(review.comments?.length || 0) !== 1 ? "s" : ""}
+                      </button>
+                    </div>
+
+                    {/* Comments List */}
+                    {expandedComments.has(review.id) && (
+                      <div className="space-y-3 mb-4">
+                        {review.comments?.map((comment) => (
+                          <div
+                            key={comment.id}
+                            className="bg-gray-50 rounded-lg p-3"
+                          >
+                            <div className="flex items-start gap-2 mb-2">
+                              <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                                <User className="w-4 h-4 text-white" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="font-medium text-sm text-gray-900">
+                                    {comment.userName}
+                                  </span>
+                                  <span className="text-xs text-gray-500">
+                                    {formatDate(comment.createdAt)}
+                                  </span>
+                                </div>
+                                <p className="text-sm text-gray-700">
+                                  {comment.content}
+                                </p>
+                                {session && (
+                                  <button
+                                    onClick={() =>
+                                      setReplyingTo({
+                                        ...replyingTo,
+                                        [review.id]: comment.id,
+                                      })
+                                    }
+                                    className="text-xs text-blue-600 hover:text-blue-700 mt-1 flex items-center gap-1"
+                                  >
+                                    <Reply className="w-3 h-3" />
+                                    Reply
+                                  </button>
+                                )}
+                              </div>
+                              {isAdmin && (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={async () => {
+                                    if (
+                                      !confirm(
+                                        "Are you sure you want to delete this comment?"
+                                      )
+                                    )
+                                      return;
+                                    try {
+                                      const response = await fetch(
+                                        `/api/admin/reviews/comments/delete?commentId=${comment.id}`,
+                                        { method: "DELETE" }
+                                      );
+                                      if (response.ok) {
+                                        toast.success("Comment deleted");
+                                        fetchReviews();
+                                      }
+                                    } catch (error) {
+                                      toast.error("Failed to delete comment");
+                                    }
+                                  }}
+                                  className="text-red-600 hover:text-red-700 h-6 w-6 p-0"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </Button>
+                              )}
+                            </div>
+
+                            {/* Replies */}
+                            {comment.replies && comment.replies.length > 0 && (
+                              <div className="ml-10 mt-2 space-y-2">
+                                {comment.replies.map((reply) => (
+                                  <div
+                                    key={reply.id}
+                                    className="bg-white rounded p-2 border border-gray-200"
+                                  >
+                                    <div className="flex items-start gap-2">
+                                      <div className="w-6 h-6 bg-indigo-500 rounded-full flex items-center justify-center flex-shrink-0">
+                                        <User className="w-3 h-3 text-white" />
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center gap-2 mb-1">
+                                          <span className="font-medium text-xs text-gray-900">
+                                            {reply.userName}
+                                          </span>
+                                          <span className="text-xs text-gray-500">
+                                            {formatDate(reply.createdAt)}
+                                          </span>
+                                        </div>
+                                        <p className="text-xs text-gray-700">
+                                          {reply.content}
+                                        </p>
+                                      </div>
+                                      {isAdmin && (
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={async () => {
+                                            if (
+                                              !confirm(
+                                                "Delete this reply?"
+                                              )
+                                            )
+                                              return;
+                                            try {
+                                              const response = await fetch(
+                                                `/api/admin/reviews/comments/delete?commentId=${reply.id}`,
+                                                { method: "DELETE" }
+                                              );
+                                              if (response.ok) {
+                                                toast.success("Reply deleted");
+                                                fetchReviews();
+                                              }
+                                            } catch (error) {
+                                              toast.error("Failed to delete");
+                                            }
+                                          }}
+                                          className="text-red-600 hover:text-red-700 h-5 w-5 p-0"
+                                        >
+                                          <Trash2 className="w-2.5 h-2.5" />
+                                        </Button>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {/* Comment Form */}
+                    {session && (
+                      <div className="mt-4">
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder={
+                              replyingTo[review.id]
+                                ? "Write a reply..."
+                                : "Write a comment..."
+                            }
+                            value={commentForms[review.id] || ""}
+                            onChange={(e) =>
+                              setCommentForms({
+                                ...commentForms,
+                                [review.id]: e.target.value,
+                              })
+                            }
+                            className="flex-1"
+                            onKeyPress={(e) => {
+                              if (e.key === "Enter" && e.shiftKey === false) {
+                                e.preventDefault();
+                                handleSubmitComment(
+                                  review.id,
+                                  replyingTo[review.id]
+                                );
+                              }
+                            }}
+                          />
+                          <Button
+                            onClick={() =>
+                              handleSubmitComment(
+                                review.id,
+                                replyingTo[review.id]
+                              )
+                            }
+                            disabled={
+                              !commentForms[review.id]?.trim() ||
+                              isSubmittingComment[review.id]
+                            }
+                            size="sm"
+                          >
+                            <Send className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        {replyingTo[review.id] && (
+                          <button
+                            onClick={() =>
+                              setReplyingTo({
+                                ...replyingTo,
+                                [review.id]: "",
+                              })
+                            }
+                            className="text-xs text-gray-500 mt-1"
+                          >
+                            Cancel reply
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
         )}
 
-        {!session && (
-          <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
-            <CardContent className="text-center py-8">
-              <User className="w-12 h-12 text-blue-600 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Join our community
-              </h3>
-              <p className="text-gray-600 mb-4">
-                Sign in as a customer to share your experience and help others
-                make informed decisions.
-              </p>
-              <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white">
-                Sign In
-              </Button>
-            </CardContent>
-          </Card>
+        {/* Load More Button */}
+        {reviews.length > reviewsPerPage && (
+          <div className="text-center mt-8">
+            <Button
+              variant="outline"
+              onClick={() => setReviewsPerPage(reviewsPerPage + 6)}
+            >
+              Load More Reviews
+            </Button>
+          </div>
         )}
       </div>
+
+      {/* Write Review Dialog */}
+      <Dialog open={showReviewForm} onOpenChange={setShowReviewForm}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Write a Review</DialogTitle>
+            <DialogDescription>
+              Share your experience with other customers
+            </DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSubmitReview} className="space-y-6 mt-4">
+            <div>
+              <Label>Rating *</Label>
+              <div className="mt-2">
+                {renderInteractiveStars(reviewForm.rating, (rating) =>
+                  setReviewForm({ ...reviewForm, rating })
+                )}
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="title">Title *</Label>
+              <Input
+                id="title"
+                value={reviewForm.title}
+                onChange={(e) =>
+                  setReviewForm({ ...reviewForm, title: e.target.value })
+                }
+                placeholder="Summarize your experience..."
+                className="mt-2"
+                required
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="content">Your Review *</Label>
+              <Textarea
+                id="content"
+                value={reviewForm.content}
+                onChange={(e) =>
+                  setReviewForm({ ...reviewForm, content: e.target.value })
+                }
+                placeholder="Tell us about your experience..."
+                className="mt-2 min-h-[120px]"
+                required
+              />
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setShowReviewForm(false);
+                  setReviewForm({ rating: 0, title: "", content: "" });
+                }}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Submitting..." : "Submit Review"}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
