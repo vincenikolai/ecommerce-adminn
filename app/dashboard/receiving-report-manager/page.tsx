@@ -97,15 +97,15 @@ export default function ReceivingReportManagerPage() {
         materialsCount: po.materials?.length || 0
       })));
       
-      // Filter POs - show only Approved POs that have materials
+      // Filter POs - show only Approved or PartiallyDelivered POs that have materials
       const filteredPOs = transformedData.filter(po => {
-        const isApproved = po.status === "Approved";
+        const isApprovedOrPartiallyDelivered = po.status === "Approved" || po.status === "PartiallyDelivered";
         const hasMaterials = po.materials && po.materials.length > 0;
-        console.log(`DEBUG - PO ${po.poReferenceNumber}: status=${po.status}, isApproved=${isApproved}, hasMaterials=${hasMaterials}, materialsCount=${po.materials?.length || 0}`);
-        return isApproved && hasMaterials;
+        console.log(`DEBUG - PO ${po.poReferenceNumber}: status=${po.status}, isApprovedOrPartiallyDelivered=${isApprovedOrPartiallyDelivered}, hasMaterials=${hasMaterials}, materialsCount=${po.materials?.length || 0}`);
+        return isApprovedOrPartiallyDelivered && hasMaterials;
       });
       
-      console.log("DEBUG - Filtered Approved POs with materials:", filteredPOs.length);
+      console.log("DEBUG - Filtered Approved/PartiallyDelivered POs with materials:", filteredPOs.length);
       setPurchaseOrders(filteredPOs);
     } catch (error: unknown) {
       console.error("Error fetching purchase orders:", error);

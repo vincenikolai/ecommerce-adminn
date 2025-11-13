@@ -21,6 +21,7 @@ export interface ReceivingReportItem {
   receivingreportid: string;
   rawmaterialid: string;
   quantity: number;
+  purchaseordermaterialid?: string | null; // FK to purchaseordermaterial
   createdat: string;
   updatedat: string;
   rawMaterial?: { id: string; name: string; unitOfMeasure: string; };

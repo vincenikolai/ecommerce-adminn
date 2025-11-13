@@ -227,14 +227,14 @@ export default function SalesQuotationPage() {
         newMap.set(productId, { product, quantity: 1 });
       }
       return newMap;
-    });
+      });
   };
 
   const handleUpdateProductQuantity = (productId: string, quantity: number) => {
     if (quantity <= 0) {
       handleRemoveProduct(productId);
       return;
-    }
+      }
     setSelectedProducts((prev) => {
       const newMap = new Map(prev);
       const existing = newMap.get(productId);
@@ -468,13 +468,13 @@ export default function SalesQuotationPage() {
 
     try {
       const response = await fetch("/api/admin/purchase-quotations/convert-to-pending", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
           orderIds: Array.from(selectedOrderIds),
-        }),
+          }),
       });
 
       if (!response.ok) {
@@ -546,7 +546,7 @@ export default function SalesQuotationPage() {
     );
   }
 
-  return (
+    return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Sales Quotation Manager</h1>
@@ -649,8 +649,8 @@ export default function SalesQuotationPage() {
               {/* Customer Information */}
               <div>
                 <h3 className="text-lg font-semibold mb-4">Customer Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
                     <Label htmlFor="customerName">Full Name *</Label>
                     <Input
                       id="customerName"
@@ -694,29 +694,29 @@ export default function SalesQuotationPage() {
                       }
                       required
                     />
-                  </div>
+          </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
+          <div>
                       <Label htmlFor="city">City *</Label>
-                      <Input
+            <Input
                         id="city"
                         value={shippingAddress.city}
                         onChange={(e) =>
                           handleShippingAddressChange("city", e.target.value)
                         }
-                        required
-                      />
-                    </div>
-                    <div>
+              required
+            />
+          </div>
+          <div>
                       <Label htmlFor="state">State *</Label>
-                      <Input
+            <Input
                         id="state"
                         value={shippingAddress.state}
                         onChange={(e) =>
                           handleShippingAddressChange("state", e.target.value)
                         }
-                        required
-                      />
+              required
+            />
                     </div>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -743,8 +743,8 @@ export default function SalesQuotationPage() {
                       />
                     </div>
                   </div>
-                </div>
-              </div>
+          </div>
+        </div>
 
               {/* Billing Address */}
               <div>
@@ -758,7 +758,7 @@ export default function SalesQuotationPage() {
                     }
                   />
                   <Label htmlFor="useSameAddress">Same as shipping address</Label>
-                </div>
+          </div>
 
                 {!useSameAddress && (
                   <div className="space-y-4">
@@ -772,9 +772,9 @@ export default function SalesQuotationPage() {
                         }
                         required={!useSameAddress}
                       />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
                         <Label htmlFor="billingCity">City *</Label>
                         <Input
                           id="billingCity"
@@ -832,16 +832,16 @@ export default function SalesQuotationPage() {
                   <div>
                     <Label htmlFor="paymentMethod">Payment Method *</Label>
                     <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                      <SelectTrigger>
+                <SelectTrigger>
                         <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
+                </SelectTrigger>
+                <SelectContent>
                         <SelectItem value="Cash">Cash</SelectItem>
                         <SelectItem value="Credit Card">Credit Card</SelectItem>
                         <SelectItem value="Bank Transfer">Bank Transfer</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                </SelectContent>
+              </Select>
+            </div>
                   <div>
                     <Label htmlFor="deliveryMethod">Delivery Method *</Label>
                     <Select value={deliveryMethod} onValueChange={setDeliveryMethod}>
@@ -855,9 +855,9 @@ export default function SalesQuotationPage() {
                         <SelectItem value="Pickup">Pickup - Free</SelectItem>
                       </SelectContent>
                     </Select>
-                  </div>
+          </div>
                 </div>
-                <div className="mt-4">
+        <div className="mt-4">
                   <Label htmlFor="notes">Order Notes</Label>
                   <Textarea
                     id="notes"
@@ -898,28 +898,28 @@ export default function SalesQuotationPage() {
                           <p className="text-sm text-gray-600">₱{product.price.toFixed(2)} each</p>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <Input
-                            type="number"
-                            min="1"
+                  <Input
+                    type="number"
+                    min="1"
                             value={quantity}
-                            onChange={(e) =>
+                    onChange={(e) =>
                               handleUpdateProductQuantity(productId, parseInt(e.target.value, 10) || 0)
-                            }
-                            className="w-20"
-                          />
-                          <Button
-                            variant="destructive"
-                            size="sm"
+                    }
+                    className="w-20"
+                  />
+                  <Button
+                    variant="destructive"
+                    size="sm"
                             onClick={() => handleRemoveProduct(productId)}
-                          >
-                            Remove
-                          </Button>
+                  >
+                    Remove
+                  </Button>
                         </div>
                       </div>
-                    ))}
+              ))}
                   </div>
-                )}
-              </div>
+          )}
+        </div>
 
               {/* Order Summary */}
               <Card className="p-4">
@@ -946,33 +946,33 @@ export default function SalesQuotationPage() {
                 </div>
                 <Button type="submit" className="w-full mt-4" disabled={selectedProducts.size === 0}>
                   {editingOrderId ? "Update Order" : "Create Order"}
-                </Button>
+        </Button>
                 {editingOrderId && (
-                  <Button
-                    type="button"
-                    variant="outline"
+          <Button
+            type="button"
+            variant="outline"
                     onClick={handleCancelEdit}
                     className="w-full mt-2"
-                  >
-                    Cancel Edit
-                  </Button>
-                )}
+          >
+            Cancel Edit
+          </Button>
+        )}
               </Card>
             </div>
           </div>
-        </form>
+      </form>
       </Card>
 
       {/* Existing Quotations Table */}
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-xl font-semibold">Existing Quotations</h2>
         {selectedOrderIds.size > 0 && (
-          <Button
+      <Button
             onClick={handleConvertToPending}
             className="bg-green-600 hover:bg-green-700"
-          >
+      >
             Convert to Order
-          </Button>
+      </Button>
         )}
       </div>
       {orders.length === 0 ? (
@@ -1010,20 +1010,20 @@ export default function SalesQuotationPage() {
                         onCheckedChange={() => handleToggleOrderSelection(order.id)}
                       />
                     )}
-                  </td>
+                    </td>
                   <td className="py-3 px-4 border-b">
                     <div className="font-medium">{order.orderNumber || `ORD-${order.id.substring(0, 8)}`}</div>
                     <div className="text-xs text-gray-500">{order.id.substring(0, 8)}...</div>
-                  </td>
+                    </td>
                   <td className="py-3 px-4 border-b">
                     <div className="font-medium">{order.customerName}</div>
                     <div className="text-xs text-gray-500">{order.customerEmail}</div>
-                  </td>
+                    </td>
                   <td className="py-3 px-4 border-b">
                     <Badge className={getStatusBadgeColor(order.status)}>
                       {order.status}
                     </Badge>
-                  </td>
+                    </td>
                   <td className="py-3 px-4 border-b text-sm">
                     {formatDate(order.createdAt)}
                   </td>
@@ -1042,7 +1042,7 @@ export default function SalesQuotationPage() {
                     ) : (
                       <span className="text-gray-400 italic">No products</span>
                     )}
-                  </td>
+                    </td>
                   <td className="py-3 px-4 border-b">
                     <div className="flex space-x-2">
                       <Button
@@ -1060,8 +1060,8 @@ export default function SalesQuotationPage() {
                         Delete
                       </Button>
                     </div>
-                  </td>
-                </tr>
+                    </td>
+                  </tr>
               ))}
             </tbody>
           </table>

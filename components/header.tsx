@@ -377,22 +377,22 @@ export function Header() {
                     </li>
                   )}
                   {(userRole === SALES_QUOTATION_MANAGER_ROLE || userRole === SALES_MANAGER_ROLE) && (
-                    <li>
-                      <Link
-                        href="/dashboard/purchase-quotation-manager"
-                        className={`block px-4 py-2 transition-all duration-200 ${
-                          pathname === "/dashboard/purchase-quotation-manager"
-                            ? "text-blue-600 bg-blue-50 border-l-4 border-blue-600 font-medium"
-                            : "text-gray-800 hover:text-blue-600 hover:bg-blue-50 hover:border-l-4 hover:border-blue-300"
-                        }`}
-                        onClick={() => {
-                          setIsMenuOpen(false);
-                          closeAdminDropdown();
-                        }}
-                      >
-                        Sales Quotation Manager
-                      </Link>
-                    </li>
+                      <li>
+                        <Link
+                          href="/dashboard/purchase-quotation-manager"
+                          className={`block px-4 py-2 transition-all duration-200 ${
+                            pathname === "/dashboard/purchase-quotation-manager"
+                              ? "text-blue-600 bg-blue-50 border-l-4 border-blue-600 font-medium"
+                              : "text-gray-800 hover:text-blue-600 hover:bg-blue-50 hover:border-l-4 hover:border-blue-300"
+                          }`}
+                          onClick={() => {
+                            setIsMenuOpen(false);
+                            closeAdminDropdown();
+                          }}
+                        >
+                          Sales Quotation Manager
+                        </Link>
+                      </li>
                   )}
                   {userRole === PURCHASING_MANAGER_ROLE && (
                     <li>
@@ -466,6 +466,25 @@ export function Header() {
                         }}
                       >
                         Order Management
+                      </Link>
+                    </li>
+                  )}
+                  {(userRole === "admin" ||
+                    userRole === SALES_MANAGER_ROLE) && (
+                    <li>
+                      <Link
+                        href="/dashboard/sales-invoices"
+                        className={`block px-4 py-2 transition-all duration-200 ${
+                          pathname === "/dashboard/sales-invoices"
+                            ? "text-blue-600 bg-blue-50 border-l-4 border-blue-600 font-medium"
+                            : "text-gray-800 hover:text-blue-600 hover:bg-blue-50 hover:border-l-4 hover:border-blue-300"
+                        }`}
+                        onClick={() => {
+                          setIsMenuOpen(false);
+                          closeAdminDropdown();
+                        }}
+                      >
+                        Sales Invoices
                       </Link>
                     </li>
                   )}

@@ -106,6 +106,10 @@ export async function PATCH(req: Request) {
       if (updateOrderError) {
         console.error("API Route - Error updating order status to Completed:", updateOrderError);
         // Don't fail the whole operation, just log
+      } else {
+        // Create invoice automatically when order is marked as Completed
+        const { createInvoiceFromOrder } = await import('@/lib/create-invoice-from-order');
+        await createInvoiceFromOrder(localAdminSupabase, delivery.order_id);
       }
 
       // Set rider back to "Available" when delivery is completed

@@ -163,6 +163,15 @@ export async function POST(req: Request) {
       );
     }
 
+    // Update invoice status to "Unpaid" when order is "On Delivery"
+    try {
+      const { createInvoiceFromOrder } = await import('@/lib/create-invoice-from-order');
+      await createInvoiceFromOrder(localAdminSupabase, orderId);
+    } catch (invoiceErr) {
+      console.error("Error updating invoice status:", invoiceErr);
+      // Don't fail the delivery creation if invoice update fails
+    }
+
     // Update rider status to "Not Available" after assignment
     const { error: updateRiderError } = await localAdminSupabase
       .from('riders')

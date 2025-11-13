@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { UserRole } from '@/types/user';
+import { createInvoiceFromOrder } from '@/lib/create-invoice-from-order';
 
 const ADMIN_EMAIL = "eastlachemicals@gmail.com";
 const SALES_MANAGER_ROLE: UserRole = "sales_manager";
@@ -97,6 +98,10 @@ export async function POST(req: Request) {
       console.error("Error updating order status:", updateError);
       return NextResponse.json({ error: updateError.message }, { status: 500 });
     }
+
+    // Create or update invoice when order status changes
+    // Invoice status: "Paid" if Completed, "Unpaid" if Pending/On Delivery
+    await createInvoiceFromOrder(localAdminSupabase, orderId);
 
     // Manually insert into history table (more reliable than trigger)
     const { error: historyError } = await localAdminSupabase

@@ -182,6 +182,17 @@ export async function PATCH(
       .update(updateFields)
       .eq("id", params.orderId);
 
+    // Update invoice status if invoice exists
+    if (!updateError) {
+      try {
+        const { createInvoiceFromOrder } = await import('@/lib/create-invoice-from-order');
+        await createInvoiceFromOrder(adminSupabase, params.orderId);
+      } catch (invoiceErr) {
+        console.error("Error updating invoice status:", invoiceErr);
+        // Don't fail the order update if invoice update fails
+      }
+    }
+
     if (updateError) {
       console.error("Error updating order:", updateError);
       return NextResponse.json({ error: updateError.message }, { status: 500 });
