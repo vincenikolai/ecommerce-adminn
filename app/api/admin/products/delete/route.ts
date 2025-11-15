@@ -5,7 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import { UserProfile, UserRole } from '@/types/user';
 
 const ADMIN_EMAIL = "eastlachemicals@gmail.com";
-const RAW_MATERIAL_MANAGER_ROLE: UserRole = "raw_material_manager"; // Renamed role constant
+const PRODUCTS_MANAGER_ROLE: UserRole = "products_manager";
 
 export async function DELETE(req: Request) {
   let supabaseUrl = '';
@@ -49,8 +49,8 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: profileError.message }, { status: 500 });
     }
 
-    if (!profile || (profile.role !== RAW_MATERIAL_MANAGER_ROLE && session.user?.email !== ADMIN_EMAIL)) {
-      return NextResponse.json({ error: "Access Denied: Insufficient privileges." }, { status: 403 });
+    if (!profile || (profile.role !== PRODUCTS_MANAGER_ROLE && profile.role !== "admin" && session.user?.email !== ADMIN_EMAIL)) {
+      return NextResponse.json({ error: "Access Denied: Insufficient privileges. Only Products Managers and Admins can delete products." }, { status: 403 });
     }
 
     const { id } = await req.json();

@@ -64,24 +64,41 @@ export async function PATCH(req: Request) {
     }
 
     const {
-      supplierid,
-      purchasequotationid,
-      deliverydate,
-      ponumber,
+      supplierId,
+      purchaseQuotationId,
+      deliveryDate,
+      poReferenceNumber,
       status,
+      totalAmount,
       materials,
     } = await req.json();
 
+    // Calculate totalAmount from materials if not provided
+    let calculatedTotalAmount = totalAmount;
+    if (calculatedTotalAmount === undefined || calculatedTotalAmount === null) {
+      calculatedTotalAmount = materials && materials.length > 0
+        ? materials.reduce((sum: number, material: any) => {
+            return sum + ((material.quantity || 0) * (material.unitprice || 0));
+          }, 0)
+        : 0;
+    }
+
     // Update the main PurchaseOrder table
+    // Use camelCase field names to match database schema
+    const updateData: any = {};
+    
+    if (supplierId !== undefined) updateData.supplierId = supplierId;
+    if (purchaseQuotationId !== undefined) updateData.purchaseQuotationId = purchaseQuotationId;
+    if (deliveryDate !== undefined) updateData.deliveryDate = deliveryDate;
+    if (poReferenceNumber !== undefined) updateData.poReferenceNumber = poReferenceNumber;
+    if (status !== undefined) updateData.status = status;
+    if (calculatedTotalAmount !== undefined && calculatedTotalAmount !== null) {
+      updateData.totalAmount = calculatedTotalAmount;
+    }
+
     const { data: updatedPurchaseOrder, error: poError } = await localAdminSupabase
       .from('purchaseorder')
-      .update({
-        supplierid,
-        purchasequotationid,
-        deliverydate: deliverydate,
-        ponumber: ponumber,
-        status,
-      })
+      .update(updateData)
       .eq('id', id)
       .select()
       .single();

@@ -150,7 +150,100 @@ export async function PATCH(
       );
     }
 
-    // Update order
+    // If order is cancelled, delete it instead of updating status
+    if (updateData.status === "Cancelled" && order.status === "Pending") {
+      // Check if there's a delivery associated with this order
+      const { data: delivery, error: deliveryError } = await adminSupabase
+        .from("deliveries")
+        .select("id")
+        .eq("order_id", orderId)
+        .single();
+
+      if (deliveryError && deliveryError.code !== "PGRST116") {
+        // PGRST116 is "not found" error, which is fine
+        console.error("Error checking for delivery:", deliveryError);
+      }
+
+      if (delivery) {
+        // Get rider_id before deleting delivery
+        const { data: deliveryData } = await adminSupabase
+          .from("deliveries")
+          .select("rider_id")
+          .eq("order_id", orderId)
+          .single();
+
+        // If delivery exists, delete it first (it has CASCADE but let's be explicit)
+        const { error: deleteDeliveryError } = await adminSupabase
+          .from("deliveries")
+          .delete()
+          .eq("order_id", orderId);
+
+        if (deleteDeliveryError) {
+          console.error("Error deleting delivery:", deleteDeliveryError);
+          return NextResponse.json(
+            { error: "Failed to delete associated delivery" },
+            { status: 500 }
+          );
+        }
+
+        // Update rider status back to Available if delivery was deleted
+        if (deliveryData?.rider_id) {
+          await adminSupabase
+            .from("riders")
+            .update({ status: "Available" })
+            .eq("id", deliveryData.rider_id);
+        }
+      }
+
+      // Check if there's a sales invoice (shouldn't exist for pending orders, but check anyway)
+      const { data: invoice, error: invoiceError } = await adminSupabase
+        .from("sales_invoices")
+        .select("id")
+        .eq("orderId", orderId)
+        .single();
+
+      if (invoiceError && invoiceError.code !== "PGRST116") {
+        console.error("Error checking for invoice:", invoiceError);
+      }
+
+      if (invoice) {
+        // Delete invoice items first (CASCADE should handle this, but be explicit)
+        await adminSupabase
+          .from("sales_invoice_items")
+          .delete()
+          .eq("salesInvoiceId", invoice.id);
+
+        // Delete invoice
+        const { error: deleteInvoiceError } = await adminSupabase
+          .from("sales_invoices")
+          .delete()
+          .eq("orderId", orderId);
+
+        if (deleteInvoiceError) {
+          console.error("Error deleting invoice:", deleteInvoiceError);
+          // Continue with order deletion even if invoice deletion fails
+        }
+      }
+
+      // Delete the order (CASCADE will automatically delete order_items and order_history)
+      const { error: deleteError } = await adminSupabase
+        .from("orders")
+        .delete()
+        .eq("id", orderId);
+
+      if (deleteError) {
+        console.error("Error deleting order:", deleteError);
+        return NextResponse.json(
+          { error: deleteError.message || "Failed to delete order" },
+          { status: 500 }
+        );
+      }
+
+      // Note: No need to restore stock since pending orders never had stock subtracted
+      return NextResponse.json({ message: "Order cancelled and deleted successfully" });
+    }
+
+    // For non-cancellation updates, update order status normally
     const { error: updateError } = await adminSupabase
       .from("orders")
       .update({
@@ -182,34 +275,6 @@ export async function PATCH(
     if (historyError) {
       console.error("Error adding to order history:", historyError);
       // Non-critical error, don't fail the update
-    }
-
-    // If order is cancelled, restore stock
-    if (updateData.status === "Cancelled") {
-      const { data: orderItems, error: itemsError } = await adminSupabase
-        .from("order_items")
-        .select(
-          `
-          *,
-          product:products(*)
-        `
-        )
-        .eq("orderId", orderId);
-
-      if (!itemsError && orderItems) {
-        for (const item of orderItems) {
-          const { error: stockError } = await adminSupabase
-            .from("products")
-            .update({
-              stock: item.product.stock + item.quantity,
-            })
-            .eq("id", item.productId);
-
-          if (stockError) {
-            console.error("Error restoring product stock:", stockError);
-          }
-        }
-      }
     }
 
     return NextResponse.json({ message: "Order updated successfully" });

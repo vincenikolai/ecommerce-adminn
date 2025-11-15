@@ -16,7 +16,8 @@ export type UserRole =
   | "sales_manager"
   | "rider"
   | "rider_manager"
-  | "delivery_manager";
+  | "delivery_manager"
+  | "products_manager";
 
 // Extend Supabase's User interface
 export type UserProfile = SupabaseUser & {

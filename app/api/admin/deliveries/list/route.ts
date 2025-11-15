@@ -114,6 +114,28 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: ordersError.message }, { status: 500 });
     }
 
+    // Fetch order items to calculate total quantities
+    const { data: orderItems, error: orderItemsError } = await localAdminSupabase
+      .from('order_items')
+      .select('orderId, quantity')
+      .in('orderId', orderIds);
+
+    if (orderItemsError) {
+      console.error("API Route - Error fetching order items:", orderItemsError);
+      // Continue without quantities if this fails
+    }
+
+    // Calculate total quantity per order
+    const orderQuantities: Record<string, number> = {};
+    if (orderItems) {
+      orderItems.forEach((item: any) => {
+        if (!orderQuantities[item.orderId]) {
+          orderQuantities[item.orderId] = 0;
+        }
+        orderQuantities[item.orderId] += item.quantity || 0;
+      });
+    }
+
     // Fetch riders with user profiles
     const { data: riders, error: ridersError } = await localAdminSupabase
       .from('riders')
@@ -156,7 +178,7 @@ export async function GET(req: Request) {
         customerName: delivery.customer_name,
         riderId: delivery.rider_id,
         deliveryDate: delivery.delivery_date,
-        quantity: delivery.quantity,
+        totalQuantity: orderQuantities[delivery.order_id] || 0,
         status: delivery.status as "Assigned" | "In Transit" | "Delivered" | "Failed",
         notes: delivery.notes,
         createdAt: delivery.created_at,

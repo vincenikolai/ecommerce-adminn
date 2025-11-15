@@ -134,9 +134,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: rriError.message }, { status: 500 });
     }
 
-    // Subtract received quantity from purchaseordermaterial for each received item
-    // Use the FK relationship (purchaseordermaterialid) that was just inserted
-    console.log(`API Route - ======= STARTING QUANTITY SUBTRACTION =======`);
+    // Directly set purchaseordermaterial quantity to received quantity (not subtract)
+    console.log(`API Route - ======= STARTING QUANTITY UPDATE =======`);
     console.log(`API Route - Purchase order materials:`, JSON.stringify(purchaseOrderMaterials, null, 2));
     console.log(`API Route - Items to process:`, JSON.stringify(items, null, 2));
     
@@ -146,157 +145,40 @@ export async function POST(req: Request) {
       // Find the corresponding purchaseordermaterial record
       const pomRecord = purchaseOrderMaterials.find((pom: any) => pom.rawmaterialid === item.rawmaterialid);
       
-      console.log(`API Route - Found POM record:`, pomRecord ? `ID=${pomRecord.id}, quantity=${pomRecord.quantity}` : 'NOT FOUND');
+      console.log(`API Route - Found POM record:`, pomRecord ? `ID=${pomRecord.id}, current quantity=${pomRecord.quantity}` : 'NOT FOUND');
       
       if (!pomRecord) {
-        console.warn(`Warning: No purchase order material record found for raw material ${item.rawmaterialid}. Cannot update expected quantity.`);
+        console.warn(`Warning: No purchase order material record found for raw material ${item.rawmaterialid}. Cannot update quantity.`);
         continue;
       }
 
-      // Fetch current quantity from database to ensure we have the latest value
-      const { data: currentPOM, error: fetchPOMError } = await localAdminSupabase
-        .from('purchaseordermaterial')
-        .select('quantity')
-        .eq('id', pomRecord.id)
-        .single();
-
-      if (fetchPOMError || !currentPOM) {
-        console.error(`API Route - Error fetching current purchase order material quantity for ${item.rawmaterialid}:`, fetchPOMError);
-        console.warn(`Warning: Could not fetch current quantity for material ${item.rawmaterialid}. Using in-memory value.`);
-        // Fallback to in-memory value
-        const currentExpectedQty = pomRecord.quantity || 0;
-        const receivedQty = item.quantity || 0;
-        const newExpectedQty = Math.max(0, currentExpectedQty - receivedQty);
-
-        console.log(`API Route - [FALLBACK UPDATE] Purchase order material ${pomRecord.id} (${item.rawmaterialid}): current=${currentExpectedQty}, received=${receivedQty}, new=${newExpectedQty}`);
-
-        const { data: updatedPOM, error: updatePOMError } = await localAdminSupabase
-          .from('purchaseordermaterial')
-          .update({ quantity: newExpectedQty })
-          .eq('id', pomRecord.id)
-          .select('quantity')
-          .single();
-
-        if (updatePOMError) {
-          console.error(`API Route - ❌ Error updating purchase order material quantity for ${item.rawmaterialid}:`, updatePOMError);
-          console.warn(`Warning: Receiving report created but purchase order material quantity update failed for material ${item.rawmaterialid}.`);
-        } else if (updatedPOM) {
-          console.log(`API Route - ✅ Successfully updated purchase order material quantity for ${item.rawmaterialid}: ${currentExpectedQty} -> ${updatedPOM.quantity} (received: ${receivedQty})`);
-          
-          // Verify the update actually worked
-          if (updatedPOM.quantity !== newExpectedQty) {
-            console.error(`API Route - ⚠️ WARNING: Update returned different value! Expected ${newExpectedQty}, got ${updatedPOM.quantity}`);
-          }
-        } else {
-          console.error(`API Route - ❌ Update returned no data for purchase order material ${pomRecord.id}`);
-        }
-        continue;
-      }
-
-      // Use database value for accurate subtraction
-      const currentExpectedQty = currentPOM.quantity || 0;
+      // Directly set the quantity to the received quantity
       const receivedQty = item.quantity || 0;
-      const newExpectedQty = Math.max(0, currentExpectedQty - receivedQty); // Don't go below 0
 
-      console.log(`API Route - [BEFORE UPDATE] Purchase order material ${pomRecord.id} (${item.rawmaterialid}): current=${currentExpectedQty}, received=${receivedQty}, new=${newExpectedQty}`);
+      console.log(`API Route - [BEFORE UPDATE] Purchase order material ${pomRecord.id} (${item.rawmaterialid}): setting quantity to ${receivedQty}`);
 
-      // Update the purchase order material quantity using RPC function for atomic operation
-      const { data: rpcResult, error: rpcError } = await localAdminSupabase
-        .rpc('subtract_purchase_order_material_quantity', {
-          pom_id: pomRecord.id,
-          qty_to_subtract: receivedQty
-        });
-
-      let updatedPOM: any = null;
-      let updatePOMError: any = null;
-
-      if (rpcError) {
-        console.warn(`API Route - RPC function not available, using direct update:`, rpcError);
-        // Fallback to direct update if RPC function doesn't exist
-        const result = await localAdminSupabase
-          .from('purchaseordermaterial')
-          .update({ quantity: newExpectedQty })
-          .eq('id', pomRecord.id)
-          .select('quantity')
-          .single();
-        updatedPOM = result.data;
-        updatePOMError = result.error;
-      } else {
-        // RPC function returned the new quantity
-        updatedPOM = { quantity: rpcResult };
-        updatePOMError = null;
-      }
+      // Update the purchase order material quantity directly
+      const { data: updatedPOM, error: updatePOMError } = await localAdminSupabase
+        .from('purchaseordermaterial')
+        .update({ quantity: receivedQty })
+        .eq('id', pomRecord.id)
+        .select('quantity')
+        .single();
 
       if (updatePOMError) {
         console.error(`API Route - ❌ Error updating purchase order material quantity for ${item.rawmaterialid}:`, updatePOMError);
-        console.error(`API Route - Error details:`, JSON.stringify(updatePOMError, null, 2));
-        console.error(`API Route - Update parameters - ID: ${pomRecord.id}, newQuantity: ${newExpectedQty}`);
         console.warn(`Warning: Receiving report created but purchase order material quantity update failed for material ${item.rawmaterialid}.`);
       } else if (updatedPOM) {
-        console.log(`API Route - ✅ Successfully updated purchase order material quantity for ${item.rawmaterialid}: ${currentExpectedQty} -> ${updatedPOM.quantity} (received: ${receivedQty})`);
-        
-        // Verify the update actually worked
-        if (updatedPOM.quantity !== newExpectedQty) {
-          console.error(`API Route - ⚠️ WARNING: Update returned different value! Expected ${newExpectedQty}, got ${updatedPOM.quantity}`);
-        }
-        
-        // Double-check by fetching again
-        const { data: verifyPOM, error: verifyError } = await localAdminSupabase
-          .from('purchaseordermaterial')
-          .select('*')
-          .eq('id', pomRecord.id)
-          .single();
-          
-        if (!verifyError && verifyPOM) {
-          console.log(`API Route - ✅ Verified: purchase order material ${pomRecord.id} now has quantity ${verifyPOM.quantity}`);
-          console.log(`API Route - Full POM record after update:`, JSON.stringify(verifyPOM, null, 2));
-          if (verifyPOM.quantity !== newExpectedQty) {
-            console.error(`API Route - ⚠️ CRITICAL: Verification shows different value! Expected ${newExpectedQty}, verified ${verifyPOM.quantity}`);
-            console.error(`API Route - This suggests a database trigger or constraint is modifying the value!`);
-          }
-        } else {
-          console.error(`API Route - ❌ Could not verify update:`, verifyError);
-        }
+        console.log(`API Route - ✅ Successfully updated purchase order material quantity for ${item.rawmaterialid} to ${updatedPOM.quantity}`);
       } else {
         console.error(`API Route - ❌ Update returned no data for purchase order material ${pomRecord.id}`);
       }
+      
+      // Note: RawMaterial stock is automatically incremented by database trigger
+      // trg_increment_raw_material_stock when receivingreportitem is inserted
     }
     
-    console.log(`API Route - ======= FINISHED QUANTITY SUBTRACTION =======`);
-
-    // Calculate and update RawMaterial stock from all received quantities in receivingreportitem
-    // Get all unique raw material IDs from the received items
-    const uniqueMaterialIds = [...new Set(items.map(item => item.rawmaterialid))];
-    
-    for (const materialId of uniqueMaterialIds) {
-      // Sum all received quantities for this material from all receiving reports
-      const { data: allReceivedItems, error: receivedItemsError } = await localAdminSupabase
-        .from('receivingreportitem')
-        .select('quantity')
-        .eq('rawmaterialid', materialId);
-
-      if (receivedItemsError) {
-        console.error(`API Route - Error fetching received items for material ${materialId}:`, receivedItemsError);
-        console.warn(`Warning: Could not calculate stock for material ${materialId}.`);
-        continue;
-      }
-
-      // Calculate total received stock for this material
-      const totalReceivedStock = (allReceivedItems || []).reduce((sum, item) => sum + (item.quantity || 0), 0);
-
-      // Update RawMaterial stock with the calculated total
-      const { error: updateStockError } = await localAdminSupabase
-        .from('RawMaterial')
-        .update({ stock: totalReceivedStock })
-        .eq('id', materialId);
-
-      if (updateStockError) {
-        console.error(`API Route - Error updating stock for raw material ${materialId}:`, updateStockError);
-        console.warn(`Warning: Receiving report created but stock update failed for material ${materialId}.`);
-      } else {
-        console.log(`API Route - Successfully updated stock for material ${materialId} to ${totalReceivedStock} (calculated from all receiving reports)`);
-      }
-    }
+    console.log(`API Route - ======= FINISHED QUANTITY UPDATE =======`);
 
     // Fetch purchase order for status update
     const { data: purchaseOrder, error: poFetchError } = await localAdminSupabase
@@ -349,7 +231,6 @@ export async function POST(req: Request) {
 
         // Compare original expected vs total received for each material
         let allFullyReceived = true;
-        let anyPartiallyReceived = false;
 
         for (const pom of purchaseOrderMaterials) {
           const materialId = pom.rawmaterialid;
@@ -358,21 +239,17 @@ export async function POST(req: Request) {
 
           if (receivedQty < expectedQty) {
             allFullyReceived = false;
-            if (receivedQty > 0) {
-              anyPartiallyReceived = true;
-            }
+            break; // No need to check further if one is not fully received
           }
         }
 
-        // Determine the new status
+        // Determine the new status - only Completed or Approved (no PartiallyDelivered)
         let newStatus: string;
         if (allFullyReceived) {
           newStatus = 'Completed';
-        } else if (anyPartiallyReceived) {
-          newStatus = 'PartiallyDelivered';
         } else {
-          // No materials received yet, keep current status
-          newStatus = purchaseOrder.status || 'Approved';
+          // Not all materials received yet, keep as Approved
+          newStatus = 'Approved';
         }
 
         // Update purchase order status

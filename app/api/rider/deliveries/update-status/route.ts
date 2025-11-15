@@ -98,6 +98,15 @@ export async function PATCH(req: Request) {
 
     // If status is updated to "Delivered", update order status to "Completed" and set rider back to "Available"
     if (newStatus === 'Delivered') {
+      // Get current order status before updating
+      const { data: currentOrder } = await localAdminSupabase
+        .from('orders')
+        .select('status')
+        .eq('id', delivery.order_id)
+        .single();
+
+      const oldOrderStatus = currentOrder?.status;
+
       const { error: updateOrderError } = await localAdminSupabase
         .from('orders')
         .update({ status: 'Completed' })
@@ -110,6 +119,20 @@ export async function PATCH(req: Request) {
         // Create invoice automatically when order is marked as Completed
         const { createInvoiceFromOrder } = await import('@/lib/create-invoice-from-order');
         await createInvoiceFromOrder(localAdminSupabase, delivery.order_id);
+
+        // Subtract product stock when order is marked as "Completed"
+        if (oldOrderStatus !== 'Completed') {
+          const { subtractStockOnOrderCompletion } = await import('@/lib/subtract-stock-on-order-completion');
+          const stockResult = await subtractStockOnOrderCompletion(
+            localAdminSupabase,
+            delivery.order_id,
+            oldOrderStatus
+          );
+          if (!stockResult.success) {
+            console.error(`Failed to subtract stock for order ${delivery.order_id}:`, stockResult.error);
+            // Don't fail the whole operation, just log
+          }
+        }
       }
 
       // Set rider back to "Available" when delivery is completed

@@ -302,7 +302,7 @@ export default function DeliveriesPage() {
                     {formatDateOnly(delivery.deliveryDate)}
                   </td>
                   <td className="py-3 px-4 border-b">
-                    {delivery.quantity}
+                    {delivery.totalQuantity || 0} item(s)
                   </td>
                   <td className="py-3 px-4 border-b">
                     <Select

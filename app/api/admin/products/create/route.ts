@@ -6,7 +6,7 @@ import { CreateProductRequest } from "@/types/product";
 import { UserProfile, UserRole } from "@/types/user";
 
 const ADMIN_EMAIL = "eastlachemicals@gmail.com";
-const RAW_MATERIAL_MANAGER_ROLE: UserRole = "raw_material_manager"; // Renamed role constant
+const PRODUCTS_MANAGER_ROLE: UserRole = "products_manager";
 
 export async function POST(req: Request) {
   let supabaseUrl = "";
@@ -70,11 +70,12 @@ export async function POST(req: Request) {
 
     if (
       !profile ||
-      (profile.role !== RAW_MATERIAL_MANAGER_ROLE &&
+      (profile.role !== PRODUCTS_MANAGER_ROLE &&
+        profile.role !== "admin" &&
         session.user?.email !== ADMIN_EMAIL)
     ) {
       return NextResponse.json(
-        { error: "Access Denied: Insufficient privileges." },
+        { error: "Access Denied: Insufficient privileges. Only Products Managers and Admins can create products." },
         { status: 403 }
       );
     }

@@ -62,11 +62,20 @@ export async function POST(req: Request) {
       deliveryDate,
       poReferenceNumber,
       status = 'Pending',
+      totalAmount,
       materials,
     } = await req.json();
 
     if (!supplierId || !deliveryDate || !poReferenceNumber || !materials || materials.length === 0) {
       return NextResponse.json({ error: "Missing required fields or materials for Purchase Order." }, { status: 400 });
+    }
+
+    // Calculate totalAmount from materials if not provided
+    let calculatedTotalAmount = totalAmount;
+    if (calculatedTotalAmount === undefined || calculatedTotalAmount === null) {
+      calculatedTotalAmount = materials.reduce((sum: number, material: any) => {
+        return sum + ((material.quantity || 0) * (material.unitprice || 0));
+      }, 0);
     }
 
     // Get current date for orderDate
@@ -81,6 +90,7 @@ export async function POST(req: Request) {
         orderDate: orderDate,
         poReferenceNumber: poReferenceNumber,
         status,
+        totalAmount: calculatedTotalAmount,
       })
       .select()
       .single();

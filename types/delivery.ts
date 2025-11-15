@@ -5,7 +5,7 @@ export interface Delivery {
   customerName: string;
   riderId: string;
   deliveryDate: string;
-  quantity: number;
+  totalQuantity?: number; // Calculated from order_items, not stored in deliveries table
   status: "Assigned" | "In Transit" | "Delivered" | "Failed";
   notes: string | null;
   createdAt: string;
@@ -16,6 +16,7 @@ export interface Delivery {
     orderNumber: string;
     customerName: string;
     status: string;
+    shippingAddress?: any;
   };
   rider?: {
     id: string;
@@ -34,13 +35,11 @@ export interface CreateDeliveryRequest {
   orderId: string;
   riderId: string;
   deliveryDate: string;
-  quantity?: number;
   notes?: string;
 }
 
 export interface UpdateDeliveryRequest {
   deliveryDate?: string;
-  quantity?: number;
   status?: "Assigned" | "In Transit" | "Delivered" | "Failed";
   notes?: string;
 }

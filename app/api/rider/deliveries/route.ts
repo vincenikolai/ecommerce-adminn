@@ -74,6 +74,28 @@ export async function GET(req: Request) {
       .select('id, orderNumber, customerName, status, shippingAddress')
       .in('id', orderIds);
 
+    // Fetch order items to calculate total quantities
+    const { data: orderItems, error: orderItemsError } = await localAdminSupabase
+      .from('order_items')
+      .select('orderId, quantity')
+      .in('orderId', orderIds);
+
+    if (orderItemsError) {
+      console.error("API Route - Error fetching order items:", orderItemsError);
+      // Continue without quantities if this fails
+    }
+
+    // Calculate total quantity per order
+    const orderQuantities: Record<string, number> = {};
+    if (orderItems) {
+      orderItems.forEach((item: any) => {
+        if (!orderQuantities[item.orderId]) {
+          orderQuantities[item.orderId] = 0;
+        }
+        orderQuantities[item.orderId] += item.quantity || 0;
+      });
+    }
+
     if (ordersError) {
       console.error("API Route - Error fetching orders:", ordersError);
       return NextResponse.json({ error: ordersError.message }, { status: 500 });
@@ -90,7 +112,7 @@ export async function GET(req: Request) {
         customerName: delivery.customer_name,
         riderId: delivery.rider_id,
         deliveryDate: delivery.delivery_date,
-        quantity: delivery.quantity,
+        totalQuantity: orderQuantities[delivery.order_id] || 0,
         status: delivery.status as "Assigned" | "In Transit" | "Delivered" | "Failed",
         notes: delivery.notes,
         createdAt: delivery.created_at,
@@ -100,6 +122,7 @@ export async function GET(req: Request) {
           orderNumber: order.orderNumber,
           customerName: order.customerName,
           status: order.status,
+          shippingAddress: order.shippingAddress,
         } : undefined,
       };
     });

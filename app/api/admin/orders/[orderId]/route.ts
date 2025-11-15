@@ -191,6 +191,25 @@ export async function PATCH(
         console.error("Error updating invoice status:", invoiceErr);
         // Don't fail the order update if invoice update fails
       }
+
+      // Subtract product stock when order is marked as "Completed"
+      if (updateData.status === 'Completed' && order.status !== 'Completed') {
+        try {
+          const { subtractStockOnOrderCompletion } = await import('@/lib/subtract-stock-on-order-completion');
+          const stockResult = await subtractStockOnOrderCompletion(
+            adminSupabase,
+            params.orderId,
+            order.status
+          );
+          if (!stockResult.success) {
+            console.error(`Failed to subtract stock for order ${params.orderId}:`, stockResult.error);
+            // Don't fail the request, but log the error
+          }
+        } catch (stockErr) {
+          console.error("Error subtracting stock:", stockErr);
+          // Don't fail the order update if stock update fails
+        }
+      }
     }
 
     if (updateError) {

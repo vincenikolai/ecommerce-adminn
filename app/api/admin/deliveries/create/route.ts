@@ -61,7 +61,7 @@ export async function POST(req: Request) {
     }
 
     const body: CreateDeliveryRequest = await req.json();
-    const { orderId, riderId, deliveryDate, quantity, notes } = body;
+    const { orderId, riderId, deliveryDate, notes } = body;
 
     if (!orderId || !riderId || !deliveryDate) {
       return NextResponse.json(
@@ -135,7 +135,6 @@ export async function POST(req: Request) {
         customer_name: order.customerName,
         rider_id: riderId,
         delivery_date: deliveryDate,
-        quantity: quantity || 1,
         status: 'Assigned',
         notes: notes || null,
       }])

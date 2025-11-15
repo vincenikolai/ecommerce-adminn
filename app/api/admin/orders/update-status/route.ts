@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { UserRole } from '@/types/user';
 import { createInvoiceFromOrder } from '@/lib/create-invoice-from-order';
+import { subtractStockOnOrderCompletion } from '@/lib/subtract-stock-on-order-completion';
 
 const ADMIN_EMAIL = "eastlachemicals@gmail.com";
 const SALES_MANAGER_ROLE: UserRole = "sales_manager";
@@ -65,9 +66,24 @@ export async function POST(req: Request) {
     }
 
     // Validate status value - "Quoted" cannot be set manually, only through quotation conversion
-    const validStatuses = ['Pending', 'Paid', 'On Delivery', 'Completed', 'Cancelled'];
+    // "Completed" and "Cancelled" cannot be set manually - they are controlled by other parts of the system
+    const validStatuses = ['Pending', 'Paid', 'On Delivery'];
+    const restrictedStatuses = ['Completed', 'Cancelled', 'Quoted'];
+    
+    if (restrictedStatuses.includes(newStatus)) {
+      let errorMessage = '';
+      if (newStatus === 'Completed') {
+        errorMessage = "Cannot manually set status to 'Completed'. This status is automatically set when a rider marks the delivery as 'Delivered'.";
+      } else if (newStatus === 'Cancelled') {
+        errorMessage = "Cannot manually set status to 'Cancelled'. This status is automatically set when a customer cancels their order.";
+      } else if (newStatus === 'Quoted') {
+        errorMessage = "Cannot manually set status to 'Quoted'. This status is only set through quotation conversion.";
+      }
+      return NextResponse.json({ error: errorMessage }, { status: 400 });
+    }
+    
     if (!validStatuses.includes(newStatus)) {
-      return NextResponse.json({ error: "Invalid status value. 'Quoted' status cannot be set manually." }, { status: 400 });
+      return NextResponse.json({ error: "Invalid status value." }, { status: 400 });
     }
 
     console.log(`Updating order ${orderId} status to ${newStatus}`);
@@ -102,6 +118,19 @@ export async function POST(req: Request) {
     // Create or update invoice when order status changes
     // Invoice status: "Paid" if Completed, "Unpaid" if Pending/On Delivery
     await createInvoiceFromOrder(localAdminSupabase, orderId);
+
+    // Subtract product stock when order is marked as "Completed"
+    if (newStatus === 'Completed' && oldStatus !== 'Completed') {
+      const stockResult = await subtractStockOnOrderCompletion(
+        localAdminSupabase,
+        orderId,
+        oldStatus
+      );
+      if (!stockResult.success) {
+        console.error(`Failed to subtract stock for order ${orderId}:`, stockResult.error);
+        // Don't fail the request, but log the error
+      }
+    }
 
     // Manually insert into history table (more reliable than trigger)
     const { error: historyError } = await localAdminSupabase

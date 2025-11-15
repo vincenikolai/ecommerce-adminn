@@ -123,25 +123,25 @@ export default function OrdersPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">My Orders</h1>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={fetchOrders}>
+    <div className="container mx-auto px-4 py-6 md:py-8 max-w-7xl">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 md:mb-8">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">My Orders</h1>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Button variant="outline" onClick={fetchOrders} className="flex-1 sm:flex-initial">
             Refresh
           </Button>
-          <Button onClick={() => router.push("/products")}>
+          <Button onClick={() => router.push("/products")} className="flex-1 sm:flex-initial">
             Continue Shopping
           </Button>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-4 mb-6">
+      <div className="flex flex-col sm:flex-row flex-wrap gap-3 md:gap-4 mb-6">
         <div className="flex items-center space-x-2">
-          <label className="text-sm font-medium text-gray-700">Status:</label>
+          <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Status:</label>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-full sm:w-40">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -155,9 +155,9 @@ export default function OrdersPage() {
           </Select>
         </div>
         <div className="flex items-center space-x-2">
-          <label className="text-sm font-medium text-gray-700">Sort by:</label>
+          <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Sort by:</label>
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-40">
+            <SelectTrigger className="w-full sm:w-40">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -168,9 +168,9 @@ export default function OrdersPage() {
           </Select>
         </div>
         <div className="flex items-center space-x-2">
-          <label className="text-sm font-medium text-gray-700">Order:</label>
+          <label className="text-sm font-medium text-gray-700 whitespace-nowrap">Order:</label>
           <Select value={sortOrder} onValueChange={setSortOrder}>
-            <SelectTrigger className="w-32">
+            <SelectTrigger className="w-full sm:w-32">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -200,17 +200,17 @@ export default function OrdersPage() {
       ) : (
         <div className="space-y-4">
           {orders.map((order) => (
-            <Card key={order.id} className="p-6">
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">
+            <Card key={order.id} className="p-4 md:p-6">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-start gap-4 mb-4">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 break-words">
                     Order #{order.orderNumber}
                   </h3>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-gray-600 mt-1">
                     Placed on {formatDate(order.createdAt)}
                   </p>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 flex-shrink-0">
                   <Badge className={getStatusColor(order.status)}>
                     {order.status}
                   </Badge>
@@ -221,14 +221,14 @@ export default function OrdersPage() {
                       onClick={() => cancelOrder(order.id)}
                       className="text-red-600 hover:text-red-700"
                     >
-                      <X className="h-4 w-4 mr-1" />
-                      Cancel
+                      <X className="h-4 w-4 sm:mr-1" />
+                      <span className="hidden sm:inline">Cancel</span>
                     </Button>
                   )}
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 mb-4">
                 <div>
                   <p className="text-sm font-medium text-gray-700">Items</p>
                   <p className="text-sm text-gray-600">
@@ -239,7 +239,7 @@ export default function OrdersPage() {
                 <div>
                   <p className="text-sm font-medium text-gray-700">Total</p>
                   <p className="text-sm text-gray-600">
-                    ${(order.totalAmount || 0).toFixed(2)}
+                    ₱{(order.totalAmount || 0).toFixed(2)}
                   </p>
                 </div>
                 <div>
@@ -248,7 +248,7 @@ export default function OrdersPage() {
                 </div>
               </div>
 
-              <div className="flex justify-between items-center">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-4 border-t">
                 <div className="text-sm text-gray-600">
                   <p>
                     <span className="font-medium">Delivery:</span>{" "}
@@ -258,6 +258,7 @@ export default function OrdersPage() {
                 <Button
                   variant="outline"
                   onClick={() => router.push(`/orders/${order.id}`)}
+                  className="w-full sm:w-auto"
                 >
                   <Eye className="h-4 w-4 mr-2" />
                   View Details

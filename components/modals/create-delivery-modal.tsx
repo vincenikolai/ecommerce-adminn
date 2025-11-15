@@ -42,7 +42,6 @@ export const CreateDeliveryModal: React.FC<CreateDeliveryModalProps> = ({ isOpen
   const [selectedOrderId, setSelectedOrderId] = useState<string>("");
   const [selectedRiderId, setSelectedRiderId] = useState<string>("");
   const [deliveryDate, setDeliveryDate] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [quantity, setQuantity] = useState<number>(1);
   const [notes, setNotes] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingData, setIsLoadingData] = useState(false);
@@ -99,7 +98,6 @@ export const CreateDeliveryModal: React.FC<CreateDeliveryModalProps> = ({ isOpen
         orderId: selectedOrderId,
         riderId: selectedRiderId,
         deliveryDate,
-        quantity,
         notes: notes || undefined,
       };
 
@@ -123,7 +121,6 @@ export const CreateDeliveryModal: React.FC<CreateDeliveryModalProps> = ({ isOpen
       setSelectedOrderId("");
       setSelectedRiderId("");
       setDeliveryDate(new Date().toISOString().split('T')[0]);
-      setQuantity(1);
       setNotes("");
     } catch (error: any) {
       console.error("Error creating delivery:", error);
@@ -234,20 +231,6 @@ export const CreateDeliveryModal: React.FC<CreateDeliveryModalProps> = ({ isOpen
               value={deliveryDate}
               onChange={(e) => setDeliveryDate(e.target.value)}
               required
-              className="col-span-3"
-            />
-          </div>
-
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="quantity" className="text-right">
-              Quantity
-            </Label>
-            <Input
-              id="quantity"
-              type="number"
-              min="1"
-              value={quantity}
-              onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
               className="col-span-3"
             />
           </div>

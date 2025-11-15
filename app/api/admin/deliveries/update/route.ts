@@ -68,9 +68,9 @@ export async function PATCH(req: Request) {
     }
 
     const body: UpdateDeliveryRequest = await req.json();
-    const { deliveryDate, quantity, status, notes } = body;
+    const { deliveryDate, status, notes } = body;
 
-    if (!deliveryDate && quantity === undefined && !status && !notes) {
+    if (!deliveryDate && !status && !notes) {
       return NextResponse.json(
         { error: "At least one field must be provided for update." },
         { status: 400 }
@@ -81,9 +81,6 @@ export async function PATCH(req: Request) {
     const updateData: any = {};
     if (deliveryDate !== undefined) {
       updateData.delivery_date = deliveryDate;
-    }
-    if (quantity !== undefined) {
-      updateData.quantity = quantity;
     }
     if (status !== undefined) {
       updateData.status = status;
@@ -112,6 +109,15 @@ export async function PATCH(req: Request) {
 
     // If status is updated to "Delivered", update order status to "Completed" and set rider back to "Available"
     if (status === 'Delivered') {
+      // Get current order status before updating
+      const { data: currentOrder } = await localAdminSupabase
+        .from('orders')
+        .select('status')
+        .eq('id', updatedDelivery.order_id)
+        .single();
+
+      const oldOrderStatus = currentOrder?.status;
+
       const { error: updateOrderError } = await localAdminSupabase
         .from('orders')
         .update({ status: 'Completed' })
@@ -124,6 +130,20 @@ export async function PATCH(req: Request) {
         // Create invoice automatically when order is marked as Completed
         const { createInvoiceFromOrder } = await import('@/lib/create-invoice-from-order');
         await createInvoiceFromOrder(localAdminSupabase, updatedDelivery.order_id);
+
+        // Subtract product stock when order is marked as "Completed"
+        if (oldOrderStatus !== 'Completed') {
+          const { subtractStockOnOrderCompletion } = await import('@/lib/subtract-stock-on-order-completion');
+          const stockResult = await subtractStockOnOrderCompletion(
+            localAdminSupabase,
+            updatedDelivery.order_id,
+            oldOrderStatus
+          );
+          if (!stockResult.success) {
+            console.error(`Failed to subtract stock for order ${updatedDelivery.order_id}:`, stockResult.error);
+            // Don't fail the whole operation, just log
+          }
+        }
       }
 
       // Set rider back to "Available" when delivery is completed

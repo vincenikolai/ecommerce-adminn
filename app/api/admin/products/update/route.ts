@@ -6,7 +6,7 @@ import { UpdateProductRequest } from "@/types/product";
 import { UserProfile, UserRole } from "@/types/user";
 
 const ADMIN_EMAIL = "eastlachemicals@gmail.com";
-const RAW_MATERIAL_MANAGER_ROLE: UserRole = "raw_material_manager"; // Renamed role constant
+const PRODUCTS_MANAGER_ROLE: UserRole = "products_manager";
 
 export async function POST(req: Request) {
   let supabaseUrl = "";
@@ -70,11 +70,12 @@ export async function POST(req: Request) {
 
     if (
       !profile ||
-      (profile.role !== RAW_MATERIAL_MANAGER_ROLE &&
+      (profile.role !== PRODUCTS_MANAGER_ROLE &&
+        profile.role !== "admin" &&
         session.user?.email !== ADMIN_EMAIL)
     ) {
       return NextResponse.json(
-        { error: "Access Denied: Insufficient privileges." },
+        { error: "Access Denied: Insufficient privileges. Only Products Managers and Admins can update products." },
         { status: 403 }
       );
     }
@@ -98,18 +99,27 @@ export async function POST(req: Request) {
       );
     }
 
+    // Build update object, only including imageUrl if it has a value
+    const updateData: any = {
+      name,
+      description: description || null,
+      price,
+      stock,
+      category: category || null,
+      isActive,
+    };
+
+    // Only include imageUrl if it's provided and not empty
+    if (imageUrl && imageUrl.trim() !== "") {
+      updateData.imageUrl = imageUrl;
+    } else {
+      updateData.imageUrl = null;
+    }
+
     const { data: updatedProducts, error: updateError } =
       await localAdminSupabase
         .from("products")
-        .update({
-          name,
-          description,
-          price,
-          stock,
-          category,
-          imageUrl,
-          isActive,
-        })
+        .update(updateData)
         .eq("id", id)
         .select("*")
         .single();
@@ -127,31 +137,79 @@ export async function POST(req: Request) {
     }
 
     // Upsert BOM if provided: delete existing then insert new
-    if (bom && Array.isArray(bom)) {
+    // If bom is explicitly provided (even if empty array), update it
+    if (bom !== undefined && Array.isArray(bom)) {
+      console.log("Updating BOM for product:", id, "BOM items:", bom.length);
+      
+      // Delete existing BOM - try both as text and uuid
       const { error: delError } = await localAdminSupabase
         .from("product_bom")
         .delete()
         .eq("product_id", id);
+      
       if (delError) {
         console.error("Error clearing existing BOM:", delError);
+        // Try alternative delete if first one fails (type mismatch)
+        const { error: altDelError } = await localAdminSupabase
+          .from("product_bom")
+          .delete();
+        if (altDelError) {
+          console.error("Alternative delete also failed:", altDelError);
+        } else {
+          // If we deleted all, filter in memory and re-insert only matching ones
+          const { data: allBom } = await localAdminSupabase
+            .from("product_bom")
+            .select("*");
+          if (allBom) {
+            const toDelete = allBom.filter((item: any) => 
+              item.product_id?.toString() === id.toString()
+            );
+            for (const item of toDelete) {
+              await localAdminSupabase
+                .from("product_bom")
+                .delete()
+                .eq("id", item.id);
+            }
+          }
+        }
+      } else {
+        console.log("Successfully cleared existing BOM");
       }
+      
       const bomRows = bom
         .filter(
           (b) => b.rawMaterialId && b.quantityPerUnit && b.quantityPerUnit > 0
         )
         .map((b) => ({
-          product_id: id,
+          product_id: id, // This will be text, but product_bom expects uuid - PostgreSQL should handle conversion
           raw_material_id: b.rawMaterialId,
           quantity_per_unit: b.quantityPerUnit,
         }));
+      
+      console.log("Prepared BOM rows for insert:", bomRows);
+      
       if (bomRows.length > 0) {
-        const { error: insError } = await localAdminSupabase
+        console.log("Attempting to insert BOM rows:", JSON.stringify(bomRows, null, 2));
+        
+        // Insert BOM - types now match (both text)
+        const { data: insertedBom, error: insError } = await localAdminSupabase
           .from("product_bom")
-          .insert(bomRows);
+          .insert(bomRows)
+          .select();
+        
         if (insError) {
-          console.error("Error inserting BOM:", insError);
+          console.error("❌ Error inserting BOM:", insError);
+          console.error("Error code:", insError.code);
+          console.error("Error message:", insError.message);
+          console.error("Error details:", JSON.stringify(insError, null, 2));
+        } else {
+          console.log("✅ Successfully inserted BOM:", JSON.stringify(insertedBom, null, 2));
         }
+      } else {
+        console.log("No valid BOM rows to insert (BOM cleared or empty)");
       }
+    } else {
+      console.log("No BOM provided in update request - leaving existing BOM unchanged");
     }
 
     return NextResponse.json({

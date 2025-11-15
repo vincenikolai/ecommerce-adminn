@@ -21,11 +21,11 @@ const PURCHASING_MANAGER_ROLE: UserRole = "purchasing_manager";
 const WAREHOUSE_STAFF_ROLE: UserRole = "warehouse_staff";
 const FINANCE_MANAGER_ROLE: UserRole = "finance_manager";
 const ORDER_MANAGER_ROLE: UserRole = "order_manager";
-const PRODUCTION_MANAGER_ROLE: UserRole = "production_manager";
 const SALES_STAFF_ROLE: UserRole = "sales_staff";
 const RIDER_MANAGER_ROLE: UserRole = "rider_manager";
 const DELIVERY_MANAGER_ROLE: UserRole = "delivery_manager";
 const RIDER_ROLE: UserRole = "rider";
+const PRODUCTS_MANAGER_ROLE: UserRole = "products_manager";
 
 export function Header() {
   const router = useRouter();
@@ -128,7 +128,7 @@ export function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 flex items-center justify-between border-b bg-white/95 backdrop-blur-sm shadow-sm px-4 py-3 md:px-8">
+    <header className="sticky top-0 z-50 flex items-center justify-between border-b bg-white/95 backdrop-blur-sm shadow-sm px-4 py-3 md:px-8 w-full">
       <div className="flex items-center gap-x-3">
         <Link href="/" className="flex items-center gap-x-2">
           <Image
@@ -168,9 +168,9 @@ export function Header() {
       )}
 
       <nav
-        className={`fixed md:relative top-0 md:top-auto bottom-0 left-0 h-full md:h-auto w-64 md:w-auto bg-white shadow-md md:shadow-none p-4 md:p-0 transition-transform duration-300 ease-in-out transform ${
+        className={`fixed md:relative top-0 md:top-auto left-0 h-full md:h-auto w-64 md:w-auto bg-white shadow-md md:shadow-none p-4 md:p-0 transition-transform duration-300 ease-in-out transform z-30 ${
           isMenuOpen ? "translate-x-0" : "-translate-x-full"
-        } md:translate-x-0 md:flex flex-1 justify-center z-20`}
+        } md:translate-x-0 md:flex flex-1 justify-center`}
       >
         <ul className="flex flex-col md:flex-row gap-2 md:gap-1 text-base font-medium md:items-center items-start w-full md:w-auto">
           <li>
@@ -268,10 +268,10 @@ export function Header() {
           (session && userRole === WAREHOUSE_STAFF_ROLE) ||
           (session && userRole === FINANCE_MANAGER_ROLE) ||
           (session && userRole === ORDER_MANAGER_ROLE) ||
-          (session && userRole === PRODUCTION_MANAGER_ROLE) ||
           (session && userRole === SALES_STAFF_ROLE) ||
           (session && userRole === RIDER_MANAGER_ROLE) ||
-          (session && userRole === DELIVERY_MANAGER_ROLE) ? (
+          (session && userRole === DELIVERY_MANAGER_ROLE) ||
+          (session && userRole === PRODUCTS_MANAGER_ROLE) ? (
             <li className="relative">
               <Button
                 onClick={toggleAdminDropdown}
@@ -305,40 +305,40 @@ export function Header() {
                   onMouseLeave={closeAdminDropdown} // Close if mouse leaves dropdown
                 >
                   {userRole === "admin" && (
-                    <>
-                      <li>
-                        <Link
-                          href="/dashboard/users"
-                          className={`block px-4 py-2 transition-all duration-200 ${
-                            pathname === "/dashboard/users"
-                              ? "text-blue-600 bg-blue-50 border-l-4 border-blue-600 font-medium"
-                              : "text-gray-800 hover:text-blue-600 hover:bg-blue-50 hover:border-l-4 hover:border-blue-300"
-                          }`}
-                          onClick={() => {
-                            setIsMenuOpen(false);
-                            closeAdminDropdown();
-                          }}
-                        >
-                          User Management
-                        </Link>
-                      </li>
-                      <li>
-                        <Link
-                          href="/dashboard/products"
-                          className={`block px-4 py-2 transition-all duration-200 ${
-                            pathname === "/dashboard/products"
-                              ? "text-blue-600 bg-blue-50 border-l-4 border-blue-600 font-medium"
-                              : "text-gray-800 hover:text-blue-600 hover:bg-blue-50 hover:border-l-4 hover:border-blue-300"
-                          }`}
-                          onClick={() => {
-                            setIsMenuOpen(false);
-                            closeAdminDropdown();
-                          }}
-                        >
-                          Product Management
-                        </Link>
-                      </li>
-                    </>
+                    <li>
+                      <Link
+                        href="/dashboard/users"
+                        className={`block px-4 py-2 transition-all duration-200 ${
+                          pathname === "/dashboard/users"
+                            ? "text-blue-600 bg-blue-50 border-l-4 border-blue-600 font-medium"
+                            : "text-gray-800 hover:text-blue-600 hover:bg-blue-50 hover:border-l-4 hover:border-blue-300"
+                        }`}
+                        onClick={() => {
+                          setIsMenuOpen(false);
+                          closeAdminDropdown();
+                        }}
+                      >
+                        User Management
+                      </Link>
+                    </li>
+                  )}
+                  {(userRole === "admin" || userRole === PRODUCTS_MANAGER_ROLE) && (
+                    <li>
+                      <Link
+                        href="/dashboard/product-management"
+                        className={`block px-4 py-2 transition-all duration-200 ${
+                          pathname === "/dashboard/product-management"
+                            ? "text-blue-600 bg-blue-50 border-l-4 border-blue-600 font-medium"
+                            : "text-gray-800 hover:text-blue-600 hover:bg-blue-50 hover:border-l-4 hover:border-blue-300"
+                        }`}
+                        onClick={() => {
+                          setIsMenuOpen(false);
+                          closeAdminDropdown();
+                        }}
+                      >
+                        Product Management
+                      </Link>
+                    </li>
                   )}
                   {userRole === SUPPLIER_MANAGEMENT_MANAGER_ROLE && (
                     <li>
@@ -412,6 +412,24 @@ export function Header() {
                       </Link>
                     </li>
                   )}
+                  {userRole === PURCHASING_MANAGER_ROLE && (
+                    <li>
+                      <Link
+                        href="/dashboard/purchasing-report"
+                        className={`block px-4 py-2 transition-all duration-200 ${
+                          pathname === "/dashboard/purchasing-report"
+                            ? "text-blue-600 bg-blue-50 border-l-4 border-blue-600 font-medium"
+                            : "text-gray-800 hover:text-blue-600 hover:bg-blue-50 hover:border-l-4 hover:border-blue-300"
+                        }`}
+                        onClick={() => {
+                          setIsMenuOpen(false);
+                          closeAdminDropdown();
+                        }}
+                      >
+                        Purchasing Report
+                      </Link>
+                    </li>
+                  )}
                   {userRole === WAREHOUSE_STAFF_ROLE && (
                     <li>
                       <Link
@@ -431,22 +449,40 @@ export function Header() {
                     </li>
                   )}
                   {userRole === FINANCE_MANAGER_ROLE && (
-                    <li>
-                      <Link
-                        href="/dashboard/purchase-invoice-manager"
-                        className={`block px-4 py-2 transition-all duration-200 ${
-                          pathname === "/dashboard/purchase-invoice-manager"
-                            ? "text-blue-600 bg-blue-50 border-l-4 border-blue-600 font-medium"
-                            : "text-gray-800 hover:text-blue-600 hover:bg-blue-50 hover:border-l-4 hover:border-blue-300"
-                        }`}
-                        onClick={() => {
-                          setIsMenuOpen(false);
-                          closeAdminDropdown();
-                        }}
-                      >
-                        Purchase Invoice Manager
-                      </Link>
-                    </li>
+                    <>
+                      <li>
+                        <Link
+                          href="/dashboard/finance"
+                          className={`block px-4 py-2 transition-all duration-200 ${
+                            pathname === "/dashboard/finance"
+                              ? "text-blue-600 bg-blue-50 border-l-4 border-blue-600 font-medium"
+                              : "text-gray-800 hover:text-blue-600 hover:bg-blue-50 hover:border-l-4 hover:border-blue-300"
+                          }`}
+                          onClick={() => {
+                            setIsMenuOpen(false);
+                            closeAdminDropdown();
+                          }}
+                        >
+                          Finance Dashboard
+                        </Link>
+                      </li>
+                      <li>
+                        <Link
+                          href="/dashboard/purchase-invoice-manager"
+                          className={`block px-4 py-2 transition-all duration-200 ${
+                            pathname === "/dashboard/purchase-invoice-manager"
+                              ? "text-blue-600 bg-blue-50 border-l-4 border-blue-600 font-medium"
+                              : "text-gray-800 hover:text-blue-600 hover:bg-blue-50 hover:border-l-4 hover:border-blue-300"
+                          }`}
+                          onClick={() => {
+                            setIsMenuOpen(false);
+                            closeAdminDropdown();
+                          }}
+                        >
+                          Purchase Invoice Manager
+                        </Link>
+                      </li>
+                    </>
                   )}
                   {(userRole === "admin" ||
                     userRole === ORDER_MANAGER_ROLE ||
@@ -488,6 +524,25 @@ export function Header() {
                       </Link>
                     </li>
                   )}
+                  {(userRole === "admin" ||
+                    userRole === SALES_MANAGER_ROLE) && (
+                    <li>
+                      <Link
+                        href="/dashboard/sales-report"
+                        className={`block px-4 py-2 transition-all duration-200 ${
+                          pathname === "/dashboard/sales-report"
+                            ? "text-blue-600 bg-blue-50 border-l-4 border-blue-600 font-medium"
+                            : "text-gray-800 hover:text-blue-600 hover:bg-blue-50 hover:border-l-4 hover:border-blue-300"
+                        }`}
+                        onClick={() => {
+                          setIsMenuOpen(false);
+                          closeAdminDropdown();
+                        }}
+                      >
+                        Sales Report
+                      </Link>
+                    </li>
+                  )}
                   {userRole === "admin" && (
                     <li>
                       <Link
@@ -503,25 +558,6 @@ export function Header() {
                         }}
                       >
                         Reviews Management
-                      </Link>
-                    </li>
-                  )}
-                  {(userRole === "admin" ||
-                    userRole === PRODUCTION_MANAGER_ROLE) && (
-                    <li>
-                      <Link
-                        href="/dashboard/production-manager"
-                        className={`block px-4 py-2 transition-all duration-200 ${
-                          pathname === "/dashboard/production-manager"
-                            ? "text-blue-600 bg-blue-50 border-l-4 border-blue-600 font-medium"
-                            : "text-gray-800 hover:text-blue-600 hover:bg-blue-50 hover:border-l-4 hover:border-blue-300"
-                        }`}
-                        onClick={() => {
-                          setIsMenuOpen(false);
-                          closeAdminDropdown();
-                        }}
-                      >
-                        Production Management
                       </Link>
                     </li>
                   )}
@@ -588,7 +624,14 @@ export function Header() {
             </li>
           ) : null}
           <li className="md:ml-auto w-full md:w-auto mt-4 md:mt-0">
-            <Link href="/order-now" className="block">
+            <Link 
+              href="/order-now" 
+              className="block"
+              onClick={() => {
+                setIsMenuOpen(false);
+                closeAdminDropdown();
+              }}
+            >
               <span className="bg-blue-500 text-white px-4 py-2 rounded-full font-semibold hover:bg-blue-600 transition-colors text-center block md:inline-block">
                 Order now!
               </span>

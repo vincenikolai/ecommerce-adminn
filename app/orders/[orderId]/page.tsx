@@ -202,12 +202,32 @@ export default function OrderDetailsPage({
                   key={item.id}
                   className="flex items-center space-x-4 p-4 border rounded-lg"
                 >
-                  {item.product?.imageUrl && (
+                  {item.product?.imageUrl && item.product.imageUrl.trim() !== "" ? (
                     <img
-                      src={item.product.imageUrl}
+                      src={`${item.product.imageUrl}${item.product.imageUrl.includes('?') ? '&' : '?'}v=${Date.now()}`}
                       alt={item.product.name}
                       className="w-16 h-16 object-cover rounded-lg"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                      key={`${item.id}-${item.product.imageUrl}`}
                     />
+                  ) : (
+                    <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
+                      <svg
+                        className="w-8 h-8 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
+                      </svg>
+                    </div>
                   )}
                   <div className="flex-1">
                     <h3 className="font-semibold text-gray-900">
@@ -222,10 +242,10 @@ export default function OrderDetailsPage({
                   </div>
                   <div className="text-right">
                     <p className="font-semibold text-gray-900">
-                      ${((item as any).unitPrice || (item as any).price || 0).toFixed(2)}
+                      ₱{((item as any).unitPrice || (item as any).price || 0).toFixed(2)}
                     </p>
                     <p className="text-sm text-gray-600">
-                      Total: ${(((item as any).unitPrice || (item as any).price || 0) * item.quantity).toFixed(2)}
+                      Total: ₱{(((item as any).unitPrice || (item as any).price || 0) * item.quantity).toFixed(2)}
                     </p>
                   </div>
                 </div>
@@ -283,25 +303,25 @@ export default function OrderDetailsPage({
               <div className="flex justify-between">
                 <span className="text-gray-600">Subtotal</span>
                 <span className="font-medium">
-                  ${((order.totalAmount || 0) - (order.taxAmount || 0) - (order.shippingAmount || 0)).toFixed(2)}
+                  ₱{((order.totalAmount || 0) - (order.taxAmount || 0) - (order.shippingAmount || 0)).toFixed(2)}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Tax</span>
                 <span className="font-medium">
-                  ${(order.taxAmount || 0).toFixed(2)}
+                  ₱{(order.taxAmount || 0).toFixed(2)}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-600">Shipping</span>
                 <span className="font-medium">
-                  ${(order.shippingAmount || 0).toFixed(2)}
+                  ₱{(order.shippingAmount || 0).toFixed(2)}
                 </span>
               </div>
               <div className="border-t pt-3">
                 <div className="flex justify-between text-lg font-bold">
                   <span>Total</span>
-                  <span>${(order.totalAmount || 0).toFixed(2)}</span>
+                  <span>₱{(order.totalAmount || 0).toFixed(2)}</span>
                 </div>
               </div>
             </div>

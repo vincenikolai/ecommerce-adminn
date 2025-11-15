@@ -27,7 +27,7 @@ export default function RootLayout({
           <ModalProvider />
 
           <Header />
-          <div className="flex-1">
+          <div className="flex-1 w-full overflow-x-hidden">
             {children}
           </div>
         </body>

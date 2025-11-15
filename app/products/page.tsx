@@ -16,6 +16,7 @@ interface Product {
   imageUrl: string;
   category: string;
   stock: number;
+  updatedAt?: string | Date;
 }
 
 export default function ProductsPage() {
@@ -228,15 +229,48 @@ export default function ProductsPage() {
                 className="bg-white rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 border border-gray-100"
               >
                 {/* Product Image */}
-                <div className="relative h-64 w-full overflow-hidden">
-                  <Image
-                    src={product.imageUrl}
-                    alt={product.name}
-                    fill
-                    className="object-cover transition-transform duration-300 hover:scale-105"
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    priority={false}
-                  />
+                <div className="relative h-64 w-full overflow-hidden bg-gray-200">
+                  {product.imageUrl && product.imageUrl.trim() !== "" ? (
+                    // Use regular img for relative paths, Image component for external URLs
+                    product.imageUrl.startsWith('/') || product.imageUrl.startsWith('./') ? (
+                      <img
+                        src={`${product.imageUrl}?v=${product.updatedAt ? new Date(product.updatedAt).getTime() : Math.random().toString(36).substring(7)}`}
+                        alt={product.name}
+                        className="absolute inset-0 w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                        onError={(e) => {
+                          // If image fails to load, hide it and show placeholder
+                          e.currentTarget.style.display = 'none';
+                        }}
+                        key={`${product.id}-${product.imageUrl}`}
+                      />
+                    ) : (
+                      <Image
+                        src={`${product.imageUrl}${product.imageUrl.includes('?') ? '&' : '?'}v=${product.updatedAt ? new Date(product.updatedAt).getTime() : Math.random().toString(36).substring(7)}`}
+                        alt={product.name}
+                        fill
+                        className="object-cover transition-transform duration-300 hover:scale-105"
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                        priority={false}
+                        key={`${product.id}-${product.imageUrl}`}
+                      />
+                    )
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                      <svg
+                        className="w-24 h-24 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
+                      </svg>
+                    </div>
+                  )}
                   {/* Category Badge */}
                   <div className="absolute top-4 left-4">
                     <span className="bg-[#0A2E6C] text-white px-3 py-1 rounded-full text-sm font-medium">

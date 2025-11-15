@@ -243,7 +243,7 @@ export async function POST(req: Request) {
       // Update existing item quantity
       const newQuantity = existingItem.quantity + quantity;
 
-      // Check stock availability for total quantity
+      // Check stock availability for total quantity (but don't subtract stock)
       if (product.stock < newQuantity) {
         return NextResponse.json(
           {
@@ -255,33 +255,13 @@ export async function POST(req: Request) {
         );
       }
 
-      // Deduct stock
-      const { error: stockError } = await adminSupabase
-        .from("products")
-        .update({ stock: product.stock - quantity })
-        .eq("id", productId);
-
-      if (stockError) {
-        console.error("Error deducting stock:", stockError);
-        return NextResponse.json(
-          { error: "Failed to update product stock" },
-          { status: 500 }
-        );
-      }
-
-      // Update cart item
+      // Update cart item (no stock subtraction)
       const { error: updateError } = await adminSupabase
         .from("cart_items")
         .update({ quantity: newQuantity })
         .eq("id", existingItem.id);
 
       if (updateError) {
-        // Rollback stock deduction
-        await adminSupabase
-          .from("products")
-          .update({ stock: product.stock })
-          .eq("id", productId);
-
         console.error("Error updating cart item:", updateError);
         return NextResponse.json(
           { error: updateError.message },
@@ -289,21 +269,7 @@ export async function POST(req: Request) {
         );
       }
     } else {
-      // Deduct stock
-      const { error: stockError } = await adminSupabase
-        .from("products")
-        .update({ stock: product.stock - quantity })
-        .eq("id", productId);
-
-      if (stockError) {
-        console.error("Error deducting stock:", stockError);
-        return NextResponse.json(
-          { error: "Failed to update product stock" },
-          { status: 500 }
-        );
-      }
-
-      // Add new item to cart
+      // Add new item to cart (no stock subtraction)
       const { error: insertError } = await adminSupabase
         .from("cart_items")
         .insert([
@@ -315,12 +281,6 @@ export async function POST(req: Request) {
         ]);
 
       if (insertError) {
-        // Rollback stock deduction
-        await adminSupabase
-          .from("products")
-          .update({ stock: product.stock })
-          .eq("id", productId);
-
         console.error("Error adding cart item:", insertError);
         return NextResponse.json(
           { error: insertError.message },

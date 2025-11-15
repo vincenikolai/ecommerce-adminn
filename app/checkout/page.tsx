@@ -413,13 +413,13 @@ export default function CheckoutPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Standard">
-                      Standard (5-7 days) - $5
+                      Standard (5-7 days) - ₱5
                     </SelectItem>
                     <SelectItem value="Express">
-                      Express (2-3 days) - $15
+                      Express (2-3 days) - ₱15
                     </SelectItem>
                     <SelectItem value="Overnight">
-                      Overnight (1 day) - $25
+                      Overnight (1 day) - ₱25
                     </SelectItem>
                     <SelectItem value="Pickup">Pickup - Free</SelectItem>
                   </SelectContent>
@@ -452,7 +452,7 @@ export default function CheckoutPage() {
                     {item.product?.name} x {item.quantity}
                   </span>
                   <span className="font-medium">
-                    ${((item.product?.price || 0) * item.quantity).toFixed(2)}
+                    ₱{((item.product?.price || 0) * item.quantity).toFixed(2)}
                   </span>
                 </div>
               ))}
@@ -460,25 +460,25 @@ export default function CheckoutPage() {
                 <div className="flex justify-between">
                   <span className="text-gray-600">Subtotal</span>
                   <span className="font-medium">
-                    ${calculateTotal().toFixed(2)}
+                    ₱{calculateTotal().toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Tax (10%)</span>
                   <span className="font-medium">
-                    ${calculateTax().toFixed(2)}
+                    ₱{calculateTax().toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Shipping</span>
                   <span className="font-medium">
-                    ${calculateShipping().toFixed(2)}
+                    ₱{calculateShipping().toFixed(2)}
                   </span>
                 </div>
                 <div className="border-t pt-3">
                   <div className="flex justify-between text-lg font-bold">
                     <span>Total</span>
-                    <span>${calculateGrandTotal().toFixed(2)}</span>
+                    <span>₱{calculateGrandTotal().toFixed(2)}</span>
                   </div>
                 </div>
               </div>

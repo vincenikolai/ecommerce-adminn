@@ -248,7 +248,7 @@ export default function RiderPage() {
                   <Package className="h-5 w-5 text-gray-400 mt-0.5" />
                   <div>
                     <p className="text-sm font-medium text-gray-700">Quantity</p>
-                    <p className="text-sm text-gray-600">{delivery.quantity} item(s)</p>
+                    <p className="text-sm text-gray-600">{delivery.totalQuantity || 0} item(s)</p>
                   </div>
                 </div>
               </div>

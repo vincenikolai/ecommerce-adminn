@@ -223,12 +223,16 @@ export default function POManagerPage() {
       return;
     }
 
+    // Calculate totalAmount from materials
+    const totalAmount = selectedMaterials.reduce((sum, m) => sum + (m.quantity * m.unitprice), 0);
+
     const payload = {
       supplierId: selectedSupplierid,
       purchaseQuotationId: null, // No longer using sales quotations
       deliveryDate: deliveryDate,
       poReferenceNumber: poNumber,
       status: status,
+      totalAmount: totalAmount,
       // Map materials with correct property names
       materials: selectedMaterials.map(({ id, createdAt, updatedAt, ...rest }) => ({
         ...rest, // This includes purchaseOrderId and rawmaterialid
@@ -410,8 +414,6 @@ export default function POManagerPage() {
         return 'bg-yellow-100 text-yellow-800';
       case 'Approved':
         return 'bg-blue-100 text-blue-800';
-      case 'PartiallyDelivered':
-        return 'bg-orange-100 text-orange-800';
       case 'Completed':
         return 'bg-green-100 text-green-800';
       case 'Cancelled':
@@ -519,7 +521,6 @@ export default function POManagerPage() {
                 <SelectItem value="Pending">Pending</SelectItem>
                 <SelectItem value="Approved">Approved</SelectItem>
                 <SelectItem value="Rejected">Rejected</SelectItem>
-                <SelectItem value="PartiallyDelivered">Partially Delivered</SelectItem>
                 <SelectItem value="Completed">Completed</SelectItem>
                 <SelectItem value="Cancelled">Cancelled</SelectItem>
               </SelectContent>
@@ -728,7 +729,7 @@ export default function POManagerPage() {
                       </span>
                     </td>
                     <td className="py-3 px-4 border-b text-sm">
-                      {formatDateOnly(po.orderDate || po.createdat)}
+                      {formatDateOnly(po.orderDate || po.createdAt)}
                     </td>
                     <td className="py-3 px-4 border-b text-sm">
                       {formatDateOnly(po.deliveryDate)}

@@ -97,29 +97,6 @@ export default function OrderManagerPage() {
     }
   }, [session, userRole, statusFilter, sortBy, sortOrder]);
 
-  const handleStatusChange = async (orderId: string, newStatus: string) => {
-    try {
-      const response = await fetch("/api/admin/orders/update-status", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ orderId, newStatus }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to update order status");
-      }
-
-      toast.success("Order status updated successfully!");
-      fetchOrders(); // Refresh the list
-    } catch (error: unknown) {
-      console.error("Error updating order status:", error);
-      toast.error("Error: " + (error instanceof Error ? error.message : "An unknown error occurred"));
-    }
-  };
-
   const viewStatusHistory = async (order: Order) => {
     setSelectedOrder(order);
     setShowHistoryModal(true);
@@ -303,21 +280,9 @@ export default function OrderManagerPage() {
                     ₱{order.totalAmount.toFixed(2)}
                   </td>
                   <td className="py-3 px-4 border-b">
-                    <Select
-                      value={order.status}
-                      onValueChange={(newStatus) => handleStatusChange(order.id, newStatus)}
-                    >
-                      <SelectTrigger className={`w-[140px] ${getStatusBadgeColor(order.status)}`}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Pending">Pending</SelectItem>
-                        <SelectItem value="Paid">Paid</SelectItem>
-                        <SelectItem value="On Delivery">On Delivery</SelectItem>
-                        <SelectItem value="Completed">Completed</SelectItem>
-                        <SelectItem value="Cancelled">Cancelled</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <span className={`px-3 py-1 rounded text-sm font-medium ${getStatusBadgeColor(order.status)}`}>
+                      {order.status}
+                    </span>
                   </td>
                   <td className="py-3 px-4 border-b">
                     <Button

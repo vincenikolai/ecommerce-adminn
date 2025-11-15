@@ -11,6 +11,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ReceivingReport, ReceivingReportItem } from '@/types/receiving-report';
 import { PurchaseOrder, PurchaseOrderMaterial } from '@/types/purchase-order';
 import { RawMaterial } from '@/types/raw-material';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { History } from 'lucide-react';
 
 const WAREHOUSE_STAFF_ROLE: UserRole = "warehouse_staff";
 
@@ -24,6 +32,25 @@ export default function ReceivingReportManagerPage() {
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [rawMaterials, setRawMaterials] = useState<RawMaterial[]>([]);
 
+  // History modal state
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [selectedReportId, setSelectedReportId] = useState<string | null>(null);
+  const [historyData, setHistoryData] = useState<{
+    receivingReportId: string;
+    receivedDate: string;
+    history: Array<{
+      id: string;
+      rawMaterialId: string;
+      rawMaterialName: string;
+      quantityReceived: number;
+      stockBefore: number;
+      stockAfter: number;
+      receivedDate: string;
+      createdAt: string;
+    }>;
+  } | null>(null);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+
   // Form states for creating a new receiving report
   const [selectedPurchaseOrderId, setSelectedPurchaseOrderId] = useState<string | null>(null);
   const [receivedDate, setReceivedDate] = useState<string>("");
@@ -32,7 +59,6 @@ export default function ReceivingReportManagerPage() {
   const [receivedMaterials, setReceivedMaterials] = useState<{
     rawmaterialid: string;
     expectedQuantity: number;
-    receivedQuantity: number;
   }[]>([]);
 
   const initialFormState = {
@@ -76,14 +102,15 @@ export default function ReceivingReportManagerPage() {
 
   const fetchPurchaseOrders = async () => {
     try {
-      const response = await fetch("/api/admin/purchase-orders/list");
+      // Only fetch Approved purchase orders from the API
+      const response = await fetch("/api/admin/purchase-orders/list?status=Approved");
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || "Failed to fetch purchase orders");
       }
       const data: PurchaseOrder[] = await response.json();
       
-      console.log("DEBUG - Receiving Report - Fetched Purchase Orders:", data);
+      console.log("DEBUG - Receiving Report - Fetched Approved Purchase Orders:", data);
       console.log("DEBUG - First PO materials:", data[0]?.materials);
       
       const transformedData = data.map(po => ({
@@ -97,15 +124,14 @@ export default function ReceivingReportManagerPage() {
         materialsCount: po.materials?.length || 0
       })));
       
-      // Filter POs - show only Approved or PartiallyDelivered POs that have materials
+      // Filter POs - show only those that have materials (status is already filtered to Approved by API)
       const filteredPOs = transformedData.filter(po => {
-        const isApprovedOrPartiallyDelivered = po.status === "Approved" || po.status === "PartiallyDelivered";
         const hasMaterials = po.materials && po.materials.length > 0;
-        console.log(`DEBUG - PO ${po.poReferenceNumber}: status=${po.status}, isApprovedOrPartiallyDelivered=${isApprovedOrPartiallyDelivered}, hasMaterials=${hasMaterials}, materialsCount=${po.materials?.length || 0}`);
-        return isApprovedOrPartiallyDelivered && hasMaterials;
+        console.log(`DEBUG - PO ${po.poReferenceNumber}: status=${po.status}, hasMaterials=${hasMaterials}, materialsCount=${po.materials?.length || 0}`);
+        return hasMaterials;
       });
       
-      console.log("DEBUG - Filtered Approved/PartiallyDelivered POs with materials:", filteredPOs.length);
+      console.log("DEBUG - Filtered Approved POs with materials:", filteredPOs.length);
       setPurchaseOrders(filteredPOs);
     } catch (error: unknown) {
       console.error("Error fetching purchase orders:", error);
@@ -182,7 +208,7 @@ export default function ReceivingReportManagerPage() {
         const mappedMaterials = selectedPO.materials.map(mat => ({
           rawmaterialid: mat.rawmaterialid,
           expectedQuantity: mat.quantity,
-          receivedQuantity: 0, // Default to 0 received
+          receivedQuantity: mat.quantity, // Set to expected quantity automatically
         }));
         console.log("DEBUG - Mapped materials for form:", mappedMaterials);
         setReceivedMaterials(mappedMaterials);
@@ -194,14 +220,6 @@ export default function ReceivingReportManagerPage() {
     } else {
       setReceivedMaterials([]);
     }
-  };
-
-  const handleReceivedQuantityChange = (rawmaterialid: string, quantity: number) => {
-    setReceivedMaterials(prev =>
-      prev.map(item =>
-        item.rawmaterialid === rawmaterialid ? { ...item, receivedQuantity: quantity } : item
-      )
-    );
   };
 
   const handleSubmitReceivingReport = async (e: React.FormEvent) => {
@@ -216,13 +234,13 @@ export default function ReceivingReportManagerPage() {
       id: `temp-${Date.now()}-${Math.random()}`,
       receivingreportid: '', // Will be set by API
       rawmaterialid: mat.rawmaterialid,
-      quantity: mat.receivedQuantity,
+      quantity: mat.expectedQuantity, // Use expected quantity (all materials received)
       createdat: new Date().toISOString(),
       updatedat: new Date().toISOString(),
-    })).filter(item => item.quantity > 0);
+    }));
 
     if (itemsToSubmit.length === 0) {
-      toast.error("Please enter received quantities for at least one material.");
+      toast.error("No materials found for this Purchase Order.");
       return;
     }
 
@@ -269,6 +287,27 @@ export default function ReceivingReportManagerPage() {
   const getRawMaterialName = (id: string) => {
     const material = rawMaterials.find(rm => rm.id === id);
     return material ? `${material.name} (${material.unitOfMeasure})` : 'Unknown Raw Material';
+  };
+
+  const viewHistory = async (reportId: string) => {
+    setSelectedReportId(reportId);
+    setShowHistoryModal(true);
+    setIsLoadingHistory(true);
+
+    try {
+      const response = await fetch(`/api/admin/receiving-reports/${reportId}/history`);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to fetch history");
+      }
+      const data = await response.json();
+      setHistoryData(data);
+    } catch (error: unknown) {
+      console.error("Error fetching history:", error);
+      toast.error("Error: " + (error instanceof Error ? error.message : "An unknown error occurred"));
+    } finally {
+      setIsLoadingHistory(false);
+    }
   };
 
   if (isLoading) {
@@ -333,7 +372,7 @@ export default function ReceivingReportManagerPage() {
           </div>
         </div>
 
-        <h3 className="text-lg font-medium mt-4 mb-2">Materials Received</h3>
+        <h3 className="text-lg font-medium mt-4 mb-2">Materials to Receive</h3>
         {selectedPurchaseOrderId ? (
           receivedMaterials.length === 0 ? (
             <p>No materials found for this Purchase Order or PO not selected.</p>
@@ -341,16 +380,11 @@ export default function ReceivingReportManagerPage() {
             <div className="space-y-2">
               {receivedMaterials.map((material) => (
                 <div key={material.rawmaterialid} className="flex items-center space-x-2">
-                  <Label className="w-48">{getRawMaterialName(material.rawmaterialid)} (Expected: {material.expectedQuantity})</Label>
-                  <Input
-                    type="number"
-                    min="0"
-                    value={material.receivedQuantity}
-                    onChange={(e) => handleReceivedQuantityChange(material.rawmaterialid, parseInt(e.target.value, 10))}
-                    className="w-24"
-                  />
+                  <Label className="w-48">{getRawMaterialName(material.rawmaterialid)}</Label>
+                  <span className="text-sm text-gray-600">Expected Quantity: {material.expectedQuantity}</span>
                 </div>
               ))}
+              <p className="text-sm text-gray-600 mt-2">All expected materials will be marked as received when you create the receiving report.</p>
             </div>
           )
         ) : (
@@ -375,6 +409,7 @@ export default function ReceivingReportManagerPage() {
                 <th className="py-2 px-4 border-b text-left">Warehouse Location</th>
                 <th className="py-2 px-4 border-b text-left">Materials</th>
                 <th className="py-2 px-4 border-b text-left">Notes</th>
+                <th className="py-2 px-4 border-b text-left">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -394,12 +429,76 @@ export default function ReceivingReportManagerPage() {
                     </ul>
                   </td>
                   <td className="py-2 px-4 border-b">{report.notes || 'N/A'}</td>
+                  <td className="py-2 px-4 border-b">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => viewHistory(report.id)}
+                    >
+                      <History className="h-4 w-4 mr-2" />
+                      View History
+                    </Button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
+
+      {/* History Modal */}
+      <Dialog open={showHistoryModal} onOpenChange={setShowHistoryModal}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Receiving Report History</DialogTitle>
+            <DialogDescription>
+              Raw material stock changes for this receiving report
+            </DialogDescription>
+          </DialogHeader>
+          
+          {isLoadingHistory ? (
+            <div className="py-8 text-center">Loading history...</div>
+          ) : historyData && historyData.history.length > 0 ? (
+            <div className="space-y-4">
+              <div className="text-sm text-gray-600 mb-4">
+                <p><strong>Received Date:</strong> {new Date(historyData.receivedDate).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric',
+                })}</p>
+              </div>
+              <div className="space-y-3">
+                {historyData.history.map((item) => (
+                  <div key={item.id} className="border rounded-lg p-4 bg-gray-50">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-semibold text-gray-900">{item.rawMaterialName}</h3>
+                      <span className="text-sm text-gray-600">Quantity Received: {item.quantityReceived}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4 mt-3">
+                      <div className="bg-white p-3 rounded border">
+                        <p className="text-xs text-gray-500 mb-1">Stock Before</p>
+                        <p className="text-lg font-bold text-gray-700">{item.stockBefore}</p>
+                      </div>
+                      <div className="bg-white p-3 rounded border">
+                        <p className="text-xs text-gray-500 mb-1">Stock After</p>
+                        <p className="text-lg font-bold text-green-600">{item.stockAfter}</p>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex items-center gap-2 text-sm text-gray-600">
+                      <span className="font-medium">{item.stockBefore}</span>
+                      <span className="text-gray-400">→</span>
+                      <span className="font-medium text-green-600">{item.stockAfter}</span>
+                      <span className="text-gray-400 ml-2">(+{item.quantityReceived})</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="py-8 text-center text-gray-500">No history data available.</div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
