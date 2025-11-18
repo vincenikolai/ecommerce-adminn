@@ -1,0 +1,54 @@
+%% Finance Payments Subsystem ERD (Payments, Accounts, Transactions)
+erDiagram
+  ACCOUNT {
+    string id
+    string ownerId
+    string ownerType
+    string accountNumber
+    string currency
+    float balance
+  }
+  PAYMENT {
+    string id
+    string sourceAccountId
+    string targetAccountId
+    string relatedInvoiceId
+    string relatedType
+    float amount
+    date paidAt
+    string method
+    string status
+  }
+  PURCHASE_INVOICE {
+    string id
+    string invoiceNumber
+    string supplierId
+    date invoiceDate
+    date dueDate
+    string status
+    float totalAmount
+  }
+  SALES_INVOICE {
+    string id
+    string invoiceNumber
+    string customerId
+    date invoiceDate
+    date dueDate
+    string status
+    float totalAmount
+  }
+  TRANSACTION {
+    string id
+    string paymentId
+    string accountId
+    float amount
+    date occurredAt
+    string type
+    string status
+  }
+
+  ACCOUNT ||--o{ PAYMENT : "sends/receives"
+  PAYMENT ||--o{ TRANSACTION : "creates"
+  PURCHASE_INVOICE ||--o{ PAYMENT : "is paid by"
+  SALES_INVOICE ||--o{ PAYMENT : "is paid by"
+  TRANSACTION ||--o{ ACCOUNT : "affects"

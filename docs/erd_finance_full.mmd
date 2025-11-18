@@ -1,0 +1,144 @@
+%% Finance - Full System ERD (Purchasing, Sales, Invoicing, Payments)
+erDiagram
+  SUPPLIER {
+    string id
+    string name
+    string email
+    string accountNumber
+  }
+  CUSTOMER {
+    string id
+    string name
+    string email
+    string accountNumber
+  }
+  PURCHASE_QUOTATION {
+    string id
+    string supplierId
+    float quotedPrice
+    date validityDate
+    boolean isOrder
+    datetime createdAt
+  }
+  PURCHASE_QUOTATION_MATERIAL {
+    string id
+    string purchaseQuotationId
+    string rawMaterialId
+    int quantity
+    float unitPrice
+  }
+  PURCHASE_ORDER {
+    string id
+    string poReferenceNumber
+    string supplierId
+    date orderDate
+    date deliveryDate
+    string status
+    float totalAmount
+  }
+  PURCHASE_ORDER_MATERIAL {
+    string id
+    string purchaseOrderId
+    string rawMaterialId
+    int quantity
+    float unitPrice
+  }
+  RECEIVING_REPORT {
+    string id
+    string purchaseOrderId
+    string receivingReportNumber
+    date receivedDate
+    string status
+  }
+  PURCHASE_INVOICE {
+    string id
+    string invoiceNumber
+    string supplierId
+    string purchaseOrderId
+    date invoiceDate
+    date dueDate
+    string status
+    float totalAmount
+  }
+  PURCHASE_INVOICE_MATERIAL {
+    string id
+    string purchaseInvoiceId
+    string rawMaterialId
+    int quantity
+    float unitPrice
+  }
+  SALES_ORDER {
+    string id
+    string customerId
+    float quotedPrice
+    date validityDate
+    boolean isOrder
+    datetime createdAt
+  }
+  SALES_ORDER_MATERIAL {
+    string id
+    string salesOrderId
+    string rawMaterialId
+    int quantity
+    float unitPrice
+  }
+  SALES_INVOICE {
+    string id
+    string invoiceNumber
+    string customerId
+    string salesOrderId
+    date invoiceDate
+    date dueDate
+    string status
+    float totalAmount
+  }
+  PAYMENT {
+    string id
+    string sourceAccountId
+    string targetAccountId
+    string relatedInvoiceId
+    string relatedType
+    float amount
+    date paidAt
+    string method
+    string status
+  }
+  ACCOUNT {
+    string id
+    string ownerId
+    string ownerType
+    string accountNumber
+    string currency
+    float balance
+  }
+
+  %% Relationships
+  SUPPLIER ||--o{ PURCHASE_QUOTATION : "provides"
+  PURCHASE_QUOTATION ||--o{ PURCHASE_QUOTATION_MATERIAL : "has"
+  PURCHASE_QUOTATION_MATERIAL }o--o{ RAW_MATERIAL : "references"
+
+  SUPPLIER ||--o{ PURCHASE_ORDER : "receives"
+  PURCHASE_ORDER ||--o{ PURCHASE_ORDER_MATERIAL : "has"
+  PURCHASE_ORDER_MATERIAL }o--o{ RAW_MATERIAL : "references"
+  PURCHASE_ORDER ||--o{ RECEIVING_REPORT : "has"
+  RECEIVING_REPORT ||--o{ PURCHASE_INVOICE : "may produce"
+
+  PURCHASE_INVOICE ||--o{ PURCHASE_INVOICE_MATERIAL : "has"
+  PURCHASE_INVOICE_MATERIAL }o--o{ RAW_MATERIAL : "references"
+  PURCHASE_INVOICE ||--o{ PAYMENT : "is paid by"
+
+  CUSTOMER ||--o{ SALES_ORDER : "places"
+  SALES_ORDER ||--o{ SALES_ORDER_MATERIAL : "has"
+  SALES_ORDER_MATERIAL }o--o{ RAW_MATERIAL : "references"
+  SALES_ORDER ||--o{ SALES_INVOICE : "may produce"
+  SALES_INVOICE ||--o{ PAYMENT : "is paid by"
+
+  PAYMENT }o--o{ ACCOUNT : "moves funds between"
+  ACCOUNT ||--o{ SUPPLIER : "may belong to"
+  ACCOUNT ||--o{ CUSTOMER : "may belong to"
+
+  %% Include Product/Order links
+  PRODUCT ||--o{ ORDER_ITEM : "sold as"
+  ORDER ||--o{ ORDER_ITEM : "contains"
+
+  %% Note: RAW_MATERIAL and PRODUCT may be separate; BOM not fully modeled here

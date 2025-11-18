@@ -1,0 +1,35 @@
+%% Purchase Quotation Subsystem (Comprehensive)
+erDiagram
+  PURCHASE_QUOTATION {
+    string id
+    string supplierId
+    string referenceNumber
+    float quotedPrice
+    date validityDate
+    boolean isOrder
+    datetime createdAt
+  }
+  PURCHASE_QUOTATION_MATERIAL {
+    string id
+    string purchaseQuotationId
+    string rawMaterialId
+    int quantity
+    float unitPrice
+  }
+  SUPPLIER {
+    string id
+    string name
+    string contact
+  }
+  RAW_MATERIAL {
+    string id
+    string name
+    string category
+    int stock
+  }
+
+  SUPPLIER ||--o{ PURCHASE_QUOTATION : "receives"
+  PURCHASE_QUOTATION ||--o{ PURCHASE_QUOTATION_MATERIAL : "has"
+  PURCHASE_QUOTATION_MATERIAL }o--o{ RAW_MATERIAL : "references"
+  %% PurchaseQuotation may convert to PurchaseOrder
+  PURCHASE_QUOTATION ||--o{ PURCHASE_ORDER : "can convert to"
