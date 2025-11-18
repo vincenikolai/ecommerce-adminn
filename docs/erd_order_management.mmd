@@ -1,0 +1,36 @@
+%% Order Management Subsystem ERD
+erDiagram
+  ORDER {
+    string id
+    string orderNumber
+    string userId
+    string status
+    float totalAmount
+    string paymentMethod
+    string deliveryMethod
+    string deliveryStatus
+  }
+  ORDER_ITEM {
+    string id
+    string orderId
+    string productId
+    int quantity
+    float price
+  }
+  ORDER_HISTORY {
+    string id
+    string orderId
+    string status
+    string notes
+    string changedBy
+    datetime createdAt
+  }
+  CUSTOMER_VERIFICATION {
+    string id
+    string userId
+    string status
+  }
+
+  ORDER ||--o{ ORDER_ITEM : "contains"
+  ORDER ||--o{ ORDER_HISTORY : "has"
+  ORDER ||--o{ CUSTOMER_VERIFICATION : "linked to (via user)"

@@ -1,0 +1,40 @@
+%% Orders & Sales Subsystem ERD
+erDiagram
+  PRODUCT {
+    string name
+    float price
+    string category
+    int stock
+  }
+  ORDER {
+    string orderNumber
+    string status
+    float totalAmount
+    string paymentMethod
+    string deliveryMethod
+    string deliveryStatus
+  }
+  ORDER_ITEM {
+    int quantity
+    float price
+  }
+  ORDER_HISTORY {
+    string status
+    string notes
+    string changedBy
+  }
+  SALES_ORDER {
+    float quotedPrice
+    date validityDate
+    boolean isOrder
+  }
+  SALES_ORDER_MATERIAL {
+    int quantity
+  }
+
+  PRODUCT ||--o{ ORDER_ITEM : "is sold as"
+  ORDER ||--o{ ORDER_ITEM : "contains"
+  ORDER ||--o{ ORDER_HISTORY : "has"
+  SUPPLIER ||--o{ SALES_ORDER : "receives"
+  SALES_ORDER ||--o{ SALES_ORDER_MATERIAL : "has"
+  RAW_MATERIAL ||--o{ SALES_ORDER_MATERIAL : "references"

@@ -1,0 +1,35 @@
+%% Customer Verification Subsystem ERD
+%% Note: `User` is external to Prisma schema; verification modeled here as a separate entity
+erDiagram
+  USER {
+    string id
+    string name
+    string email
+    boolean isVerified
+    datetime createdAt
+  }
+  CUSTOMER_VERIFICATION {
+    string id
+    string userId
+    string status
+    string documents
+    datetime submittedAt
+    datetime verifiedAt
+  }
+  ORDER {
+    string id
+    string userId
+    string orderNumber
+    string status
+  }
+  REVIEW {
+    string id
+    string userId
+    string content
+    boolean isApproved
+  }
+
+  USER ||--o{ CUSTOMER_VERIFICATION : "has"
+  USER ||--o{ ORDER : "places"
+  USER ||--o{ REVIEW : "writes"
+  CUSTOMER_VERIFICATION ||--o{ REVIEW : "may impact"

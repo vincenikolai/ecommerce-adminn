@@ -1,0 +1,18 @@
+%% Cart & Checkout Subsystem ERD
+erDiagram
+  CART {
+    createdAt datetime
+    updatedAt datetime
+  }
+  CART_ITEM {
+    quantity int
+    createdAt datetime
+  }
+  PRODUCT {
+    name string
+    price float
+    stock int
+  }
+
+  CART ||--o{ CART_ITEM : "contains"
+  PRODUCT ||--o{ CART_ITEM : "listed in"

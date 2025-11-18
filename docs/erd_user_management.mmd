@@ -1,0 +1,40 @@
+%% User Management Subsystem ERD
+erDiagram
+  USER {
+    string id
+    string name
+    string email
+    string role
+    boolean isVerified
+    datetime createdAt
+  }
+  STORE {
+    string id
+    string name
+    string userId
+  }
+  CART {
+    string id
+    string userId
+    datetime createdAt
+  }
+  ORDER {
+    string id
+    string orderNumber
+    string userId
+    string status
+    float totalAmount
+  }
+  REVIEW {
+    string id
+    string userId
+    string userName
+    int rating
+    string title
+    string content
+  }
+
+  USER ||--o{ STORE : "owns"
+  USER ||--o{ CART : "has"
+  USER ||--o{ ORDER : "places"
+  USER ||--o{ REVIEW : "writes"

@@ -1,0 +1,24 @@
+%% Rider Management Subsystem ERD
+erDiagram
+  RIDER {
+    string id
+    string name
+    string phone
+    string status
+    datetime createdAt
+  }
+  DELIVERY {
+    string id
+    string orderId
+    string riderId
+    string status
+    datetime assignedAt
+  }
+  ORDER {
+    string id
+    string orderNumber
+    string deliveryStatus
+  }
+
+  RIDER ||--o{ DELIVERY : "assigned to"
+  ORDER ||--o{ DELIVERY : "has"

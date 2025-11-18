@@ -1,0 +1,59 @@
+%% Purchasing & Inventory Subsystem ERD
+erDiagram
+  SUPPLIER {
+    string name
+    string description
+    datetime createdAt
+  }
+  RAW_MATERIAL {
+    string name
+    string category
+    string unitOfMeasure
+    int stock
+  }
+  PURCHASE_QUOTATION {
+    float quotedPrice
+    date validityDate
+    boolean isOrder
+  }
+  PURCHASE_QUOTATION_MATERIAL {
+    int quantity
+  }
+  PURCHASE_ORDER {
+    string poReferenceNumber
+    date orderDate
+    date deliveryDate
+    string status
+    float totalAmount
+  }
+  PURCHASE_ORDER_MATERIAL {
+    int quantity
+    float unitPrice
+  }
+  RECEIVING_REPORT {
+    string receivingReportNumber
+    date receivedDate
+    string status
+    json receivedMaterials
+  }
+  PURCHASE_INVOICE {
+    string invoiceNumber
+    date invoiceDate
+    date dueDate
+    string paymentTerms
+    string status
+  }
+  PURCHASE_INVOICE_MATERIAL {
+    int quantity
+    float unitPrice
+  }
+
+  SUPPLIER ||--o{ RAW_MATERIAL : "supplies"
+  PURCHASE_QUOTATION ||--o{ PURCHASE_QUOTATION_MATERIAL : "contains"
+  RAW_MATERIAL ||--o{ PURCHASE_QUOTATION_MATERIAL : "references"
+  PURCHASE_ORDER ||--o{ PURCHASE_ORDER_MATERIAL : "contains"
+  RAW_MATERIAL ||--o{ PURCHASE_ORDER_MATERIAL : "references"
+  PURCHASE_ORDER ||--o{ RECEIVING_REPORT : "has"
+  RECEIVING_REPORT ||--o{ PURCHASE_INVOICE : "generates"
+  PURCHASE_INVOICE ||--o{ PURCHASE_INVOICE_MATERIAL : "contains"
+  RAW_MATERIAL ||--o{ PURCHASE_INVOICE_MATERIAL : "references"

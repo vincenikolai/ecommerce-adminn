@@ -1,0 +1,182 @@
+%% Full system ERD - ecommerce-adminn
+erDiagram
+  SUPPLIER {
+    string name
+    string description
+    float price
+    int stock
+    string supplier_shop
+    date date
+    datetime createdAt
+  }
+  RAW_MATERIAL {
+    string name
+    string category
+    string unitOfMeasure
+    int stock
+    datetime createdAt
+    datetime updatedAt
+  }
+  PURCHASE_QUOTATION {
+    float quotedPrice
+    date validityDate
+    boolean isOrder
+    datetime createdAt
+    datetime updatedAt
+  }
+  PURCHASE_QUOTATION_MATERIAL {
+    int quantity
+    datetime createdAt
+    datetime updatedAt
+  }
+  SALES_ORDER {
+    float quotedPrice
+    date validityDate
+    boolean isOrder
+    datetime createdAt
+    datetime updatedAt
+  }
+  SALES_ORDER_MATERIAL {
+    int quantity
+    datetime createdAt
+    datetime updatedAt
+  }
+  PURCHASE_ORDER {
+    string poReferenceNumber
+    date orderDate
+    date deliveryDate
+    string status
+    float totalAmount
+    datetime createdAt
+    datetime updatedAt
+  }
+  PURCHASE_ORDER_MATERIAL {
+    int quantity
+    float unitPrice
+    datetime createdAt
+    datetime updatedAt
+  }
+  RECEIVING_REPORT {
+    string receivingReportNumber
+    date receivedDate
+    string status
+    json receivedMaterials
+    datetime createdAt
+    datetime updatedAt
+  }
+  PURCHASE_INVOICE {
+    string invoiceNumber
+    date invoiceDate
+    date dueDate
+    string paymentTerms
+    string status
+    datetime createdAt
+    datetime updatedAt
+  }
+  PURCHASE_INVOICE_MATERIAL {
+    int quantity
+    float unitPrice
+    datetime createdAt
+    datetime updatedAt
+  }
+  PRODUCT {
+    string name
+    string description
+    float price
+    string imageUrl
+    string category
+    int stock
+    boolean isActive
+    datetime createdAt
+    datetime updatedAt
+  }
+  CART {
+    datetime createdAt
+    datetime updatedAt
+  }
+  CART_ITEM {
+    int quantity
+    datetime createdAt
+    datetime updatedAt
+  }
+  ORDER {
+    string orderNumber
+    string status
+    float totalAmount
+    string paymentMethod
+    string deliveryMethod
+    string deliveryStatus
+    string notes
+    datetime createdAt
+    datetime updatedAt
+  }
+  ORDER_ITEM {
+    int quantity
+    float price
+    datetime createdAt
+    datetime updatedAt
+  }
+  ORDER_HISTORY {
+    string status
+    string notes
+    string changedBy
+    datetime createdAt
+  }
+  REVIEW {
+    string userName
+    string userEmail
+    int rating
+    string title
+    string content
+    boolean isApproved
+    datetime createdAt
+    datetime updatedAt
+  }
+  STORE {
+    string name
+    string userId
+    datetime createdAt
+    datetime updated
+  }
+
+  SUPPLIER ||--o{ RAW_MATERIAL : "supplies"
+  SUPPLIER ||--o{ PRODUCT : "supplies"
+  SUPPLIER ||--o{ PURCHASE_QUOTATION : "receives quotations"
+  SUPPLIER ||--o{ PURCHASE_ORDER : "receives orders"
+  SUPPLIER ||--o{ PURCHASE_INVOICE : "issues invoices"
+  SUPPLIER ||--o{ SALES_ORDER : "receives sales orders"
+
+  PURCHASE_QUOTATION ||--o{ PURCHASE_QUOTATION_MATERIAL : "has"
+  RAW_MATERIAL ||--o{ PURCHASE_QUOTATION_MATERIAL : "references"
+
+  SALES_ORDER ||--o{ SALES_ORDER_MATERIAL : "has"
+  RAW_MATERIAL ||--o{ SALES_ORDER_MATERIAL : "references"
+
+  PURCHASE_ORDER ||--o{ PURCHASE_ORDER_MATERIAL : "has"
+  RAW_MATERIAL ||--o{ PURCHASE_ORDER_MATERIAL : "references"
+
+  PURCHASE_INVOICE ||--o{ PURCHASE_INVOICE_MATERIAL : "has"
+  RAW_MATERIAL ||--o{ PURCHASE_INVOICE_MATERIAL : "references"
+
+  PURCHASE_ORDER ||--o{ RECEIVING_REPORT : "has"
+  RECEIVING_REPORT ||--o{ PURCHASE_INVOICE : "may generate"
+
+  PRODUCT ||--o{ CART_ITEM : "listed in"
+  CART ||--o{ CART_ITEM : "contains"
+
+  PRODUCT ||--o{ ORDER_ITEM : "sold as"
+  ORDER ||--o{ ORDER_ITEM : "contains"
+
+  ORDER ||--o{ ORDER_HISTORY : "has"
+
+  PURCHASE_QUOTATION_MATERIAL }o--o{ PURCHASE_QUOTATION : "assoc"
+  PURCHASE_QUOTATION_MATERIAL }o--o{ RAW_MATERIAL : "assoc"
+
+  PURCHASE_ORDER_MATERIAL }o--o{ PURCHASE_ORDER : "assoc"
+  PURCHASE_ORDER_MATERIAL }o--o{ RAW_MATERIAL : "assoc"
+
+  PURCHASE_INVOICE_MATERIAL }o--o{ PURCHASE_INVOICE : "assoc"
+  PURCHASE_INVOICE_MATERIAL }o--o{ RAW_MATERIAL : "assoc"
+
+  SALES_ORDER_MATERIAL }o--o{ SALES_ORDER : "assoc"
+  SALES_ORDER_MATERIAL }o--o{ RAW_MATERIAL : "assoc"

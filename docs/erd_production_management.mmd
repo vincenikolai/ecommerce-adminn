@@ -1,0 +1,31 @@
+%% Production Management Subsystem ERD
+erDiagram
+  RAW_MATERIAL {
+    string id
+    string name
+    string category
+    int stock
+  }
+  PRODUCT {
+    string id
+    string name
+    int stock
+  }
+  PRODUCTION_ORDER {
+    string id
+    string productId
+    int quantity
+    string status
+    datetime scheduledAt
+    datetime completedAt
+  }
+  PURCHASE_ORDER_MATERIAL {
+    string id
+    string purchaseOrderId
+    string rawMaterialId
+    int quantity
+  }
+
+  PRODUCT ||--o{ PRODUCTION_ORDER : "manufactures"
+  RAW_MATERIAL ||--o{ PURCHASE_ORDER_MATERIAL : "is ordered as"
+  PRODUCTION_ORDER ||--o{ PURCHASE_ORDER_MATERIAL : "consumes (via BOM)"

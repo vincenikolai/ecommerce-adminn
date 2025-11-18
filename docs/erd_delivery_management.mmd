@@ -1,0 +1,29 @@
+%% Delivery Management Subsystem ERD
+erDiagram
+  DELIVERY {
+    string id
+    string orderId
+    string status
+    datetime scheduledAt
+    datetime deliveredAt
+  }
+  ORDER {
+    string id
+    string orderNumber
+    string deliveryStatus
+  }
+  RIDER {
+    string id
+    string name
+    string phone
+    string status
+  }
+  RECEIVING_REPORT {
+    string id
+    string purchaseOrderId
+    string status
+  }
+
+  ORDER ||--o{ DELIVERY : "has"
+  DELIVERY ||--o{ RIDER : "assigned to"
+  PURCHASE_ORDER ||--o{ RECEIVING_REPORT : "has"

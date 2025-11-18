@@ -1,0 +1,14 @@
+%% Reviews Subsystem ERD
+erDiagram
+  REVIEW {
+    userId string
+    userName string
+    userEmail string
+    rating int
+    title string
+    content string
+    isApproved boolean
+    createdAt datetime
+  }
+
+  %% Note: User model is external to Prisma schema; reviews reference userId

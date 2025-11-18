@@ -1,0 +1,41 @@
+%% Product Management Subsystem ERD
+erDiagram
+  PRODUCT {
+    string id
+    string name
+    string description
+    float price
+    string imageUrl
+    string category
+    int stock
+    boolean isActive
+    datetime createdAt
+  }
+  SUPPLIER {
+    string id
+    string name
+  }
+  RAW_MATERIAL {
+    string id
+    string name
+    string category
+    int stock
+  }
+  CART_ITEM {
+    string id
+    string cartId
+    string productId
+    int quantity
+  }
+  ORDER_ITEM {
+    string id
+    string orderId
+    string productId
+    int quantity
+    float price
+  }
+
+  SUPPLIER ||--o{ PRODUCT : "supplies"
+  PRODUCT ||--o{ CART_ITEM : "listed in"
+  PRODUCT ||--o{ ORDER_ITEM : "sold as"
+  RAW_MATERIAL ||--o{ PRODUCT : "may compose (BOM)"

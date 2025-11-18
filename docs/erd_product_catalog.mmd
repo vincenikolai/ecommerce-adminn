@@ -1,0 +1,16 @@
+%% Product Catalog Subsystem ERD
+erDiagram
+  SUPPLIER {
+    string name
+  }
+  PRODUCT {
+    string name
+    string description
+    float price
+    string imageUrl
+    string category
+    int stock
+    boolean isActive
+  }
+
+  SUPPLIER ||--o{ PRODUCT : "supplies"
