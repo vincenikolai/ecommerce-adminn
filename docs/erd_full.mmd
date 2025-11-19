@@ -136,7 +136,61 @@ erDiagram
     string name
     string userId
     datetime createdAt
-    datetime updated
+    datetime updatedAt
+  }
+
+  %% Finance entities
+  ACCOUNT {
+    string id
+    string ownerId
+    string ownerType
+    string accountNumber
+    string currency
+    float balance
+    datetime createdAt
+    datetime updatedAt
+  }
+  PAYMENT {
+    string id
+    string sourceAccountId
+    string targetAccountId
+    string relatedInvoiceId
+    string relatedType
+    float amount
+    date paidAt
+    string method
+    string status
+    datetime createdAt
+  }
+  SALES_INVOICE {
+    string id
+    string invoiceNumber
+    string customerId
+    string salesOrderId
+    date invoiceDate
+    date dueDate
+    string status
+    float totalAmount
+    datetime createdAt
+  }
+
+  %% Rider management entities
+  RIDER {
+    string id
+    string name
+    string phone
+    string status
+    datetime createdAt
+    datetime updatedAt
+  }
+  DELIVERY {
+    string id
+    string orderId
+    string riderId
+    string status
+    datetime assignedAt
+    datetime pickedAt
+    datetime deliveredAt
   }
 
   SUPPLIER ||--o{ RAW_MATERIAL : "supplies"
@@ -180,3 +234,19 @@ erDiagram
 
   SALES_ORDER_MATERIAL }o--o{ SALES_ORDER : "assoc"
   SALES_ORDER_MATERIAL }o--o{ RAW_MATERIAL : "assoc"
+
+  %% Finance relationships
+  PURCHASE_INVOICE ||--o{ PAYMENT : "is paid by"
+  SALES_INVOICE ||--o{ PAYMENT : "is paid by"
+  PAYMENT }o--o{ ACCOUNT : "moves funds between"
+  ACCOUNT ||--o{ SUPPLIER : "may belong to"
+  ACCOUNT ||--o{ CUSTOMER : "may belong to"
+
+  SALES_ORDER ||--o{ SALES_INVOICE : "may produce"
+  SALES_INVOICE }o--o{ SALES_ORDER : "references"
+
+  %% Rider relationships
+  RIDER ||--o{ DELIVERY : "assigned to"
+  ORDER ||--o{ DELIVERY : "has"
+  DELIVERY }o--o{ RIDER : "assigned"
+  DELIVERY }o--o{ ORDER : "for"
