@@ -11,12 +11,12 @@ erDiagram
     string unitOfMeasure
     int stock
   }
-  PURCHASE_QUOTATION {
+  SALES_QUOTATION {
     float quotedPrice
     date validityDate
     boolean isOrder
   }
-  PURCHASE_QUOTATION_MATERIAL {
+  SALES_QUOTATION_MATERIAL {
     int quantity
   }
   PURCHASE_ORDER {
@@ -49,8 +49,8 @@ erDiagram
   }
 
   SUPPLIER ||--o{ RAW_MATERIAL : "supplies"
-  PURCHASE_QUOTATION ||--o{ PURCHASE_QUOTATION_MATERIAL : "contains"
-  RAW_MATERIAL ||--o{ PURCHASE_QUOTATION_MATERIAL : "references"
+  SALES_QUOTATION ||--o{ SALES_QUOTATION_MATERIAL : "contains"
+  RAW_MATERIAL ||--o{ SALES_QUOTATION_MATERIAL : "references"
   PURCHASE_ORDER ||--o{ PURCHASE_ORDER_MATERIAL : "contains"
   RAW_MATERIAL ||--o{ PURCHASE_ORDER_MATERIAL : "references"
   PURCHASE_ORDER ||--o{ RECEIVING_REPORT : "has"

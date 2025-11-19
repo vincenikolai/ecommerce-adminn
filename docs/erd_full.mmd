@@ -17,14 +17,14 @@ erDiagram
     datetime createdAt
     datetime updatedAt
   }
-  PURCHASE_QUOTATION {
+  SALES_QUOTATION {
     float quotedPrice
     date validityDate
     boolean isOrder
     datetime createdAt
     datetime updatedAt
   }
-  PURCHASE_QUOTATION_MATERIAL {
+  SALES_QUOTATION_MATERIAL {
     int quantity
     datetime createdAt
     datetime updatedAt
@@ -195,13 +195,13 @@ erDiagram
 
   SUPPLIER ||--o{ RAW_MATERIAL : "supplies"
   SUPPLIER ||--o{ PRODUCT : "supplies"
-  SUPPLIER ||--o{ PURCHASE_QUOTATION : "receives quotations"
+  SUPPLIER ||--o{ SALES_QUOTATION : "receives quotations"
   SUPPLIER ||--o{ PURCHASE_ORDER : "receives orders"
   SUPPLIER ||--o{ PURCHASE_INVOICE : "issues invoices"
   SUPPLIER ||--o{ SALES_ORDER : "receives sales orders"
 
-  PURCHASE_QUOTATION ||--o{ PURCHASE_QUOTATION_MATERIAL : "has"
-  RAW_MATERIAL ||--o{ PURCHASE_QUOTATION_MATERIAL : "references"
+  SALES_QUOTATION ||--o{ SALES_QUOTATION_MATERIAL : "has"
+  RAW_MATERIAL ||--o{ SALES_QUOTATION_MATERIAL : "references"
 
   SALES_ORDER ||--o{ SALES_ORDER_MATERIAL : "has"
   RAW_MATERIAL ||--o{ SALES_ORDER_MATERIAL : "references"
@@ -223,8 +223,8 @@ erDiagram
 
   ORDER ||--o{ ORDER_HISTORY : "has"
 
-  PURCHASE_QUOTATION_MATERIAL }o--o{ PURCHASE_QUOTATION : "assoc"
-  PURCHASE_QUOTATION_MATERIAL }o--o{ RAW_MATERIAL : "assoc"
+  SALES_QUOTATION_MATERIAL }o--o{ SALES_QUOTATION : "assoc"
+  SALES_QUOTATION_MATERIAL }o--o{ RAW_MATERIAL : "assoc"
 
   PURCHASE_ORDER_MATERIAL }o--o{ PURCHASE_ORDER : "assoc"
   PURCHASE_ORDER_MATERIAL }o--o{ RAW_MATERIAL : "assoc"

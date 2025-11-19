@@ -1,6 +1,6 @@
 %% Purchase Quotation Subsystem (Comprehensive)
 erDiagram
-  PURCHASE_QUOTATION {
+  SALES_QUOTATION {
     string id
     string supplierId
     string referenceNumber
@@ -9,9 +9,9 @@ erDiagram
     boolean isOrder
     datetime createdAt
   }
-  PURCHASE_QUOTATION_MATERIAL {
+  SALES_QUOTATION_MATERIAL {
     string id
-    string purchaseQuotationId
+    string salesQuotationId
     string rawMaterialId
     int quantity
     float unitPrice
@@ -28,8 +28,8 @@ erDiagram
     int stock
   }
 
-  SUPPLIER ||--o{ PURCHASE_QUOTATION : "receives"
-  PURCHASE_QUOTATION ||--o{ PURCHASE_QUOTATION_MATERIAL : "has"
-  PURCHASE_QUOTATION_MATERIAL }o--o{ RAW_MATERIAL : "references"
-  %% PurchaseQuotation may convert to PurchaseOrder
-  PURCHASE_QUOTATION ||--o{ PURCHASE_ORDER : "can convert to"
+  SUPPLIER ||--o{ SALES_QUOTATION : "receives"
+  SALES_QUOTATION ||--o{ SALES_QUOTATION_MATERIAL : "has"
+  SALES_QUOTATION_MATERIAL }o--o{ RAW_MATERIAL : "references"
+  %% SalesQuotation may convert to PurchaseOrder
+  SALES_QUOTATION ||--o{ PURCHASE_ORDER : "can convert to"

@@ -12,7 +12,7 @@ erDiagram
     string email
     string accountNumber
   }
-  PURCHASE_QUOTATION {
+  SALES_QUOTATION {
     string id
     string supplierId
     float quotedPrice
@@ -20,9 +20,9 @@ erDiagram
     boolean isOrder
     datetime createdAt
   }
-  PURCHASE_QUOTATION_MATERIAL {
+  SALES_QUOTATION_MATERIAL {
     string id
-    string purchaseQuotationId
+    string salesQuotationId
     string rawMaterialId
     int quantity
     float unitPrice
@@ -113,9 +113,9 @@ erDiagram
   }
 
   %% Relationships
-  SUPPLIER ||--o{ PURCHASE_QUOTATION : "provides"
-  PURCHASE_QUOTATION ||--o{ PURCHASE_QUOTATION_MATERIAL : "has"
-  PURCHASE_QUOTATION_MATERIAL }o--o{ RAW_MATERIAL : "references"
+  SUPPLIER ||--o{ SALES_QUOTATION : "provides"
+  SALES_QUOTATION ||--o{ SALES_QUOTATION_MATERIAL : "has"
+  SALES_QUOTATION_MATERIAL }o--o{ RAW_MATERIAL : "references"
 
   SUPPLIER ||--o{ PURCHASE_ORDER : "receives"
   PURCHASE_ORDER ||--o{ PURCHASE_ORDER_MATERIAL : "has"
